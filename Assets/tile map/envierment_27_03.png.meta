@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 30ed3122c202dbf4e8d2dfeccc927f36
+guid: 1e5fe99a8990c564da51426cae06951e
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -6254128524701795836
-    second: Buildings_26_0
+      213: 4360704206486053224
+    second: envierment_27_03_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 0
+    filterMode: 1
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -46,12 +46,12 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 1
-  alignment: 9
-  spritePivot: {x: 0.49884513, y: 0.1856375}
-  spritePixelsToUnits: 50
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -113,23 +113,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Buildings_26_0
+      name: envierment_27_03_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 64
-        height: 35
-      alignment: 9
-      pivot: {x: 0.49769202, y: -0.10973507}
+        width: 48
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 40af2891e3fd439a0800000000000000
-      internalID: -6254128524701795836
+      spriteID: 861272e2f55548c30800000000000000
+      internalID: 4360704206486053224
       vertices: []
       indices: 
       edges: []
@@ -138,8 +138,8 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: e730ae15c6174ac44b662da4852f837a
-    internalID: 563464678
+    spriteID: 
+    internalID: 0
     vertices: []
     indices: 
     edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Buildings_26_0: -6254128524701795836
+      envierment_27_03_0: 4360704206486053224
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

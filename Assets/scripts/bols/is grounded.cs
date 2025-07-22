@@ -5,27 +5,22 @@ public class isgrounded : MonoBehaviour
 {
     public bool grounded = false;
 
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        //Tile map[ ====== ground]using UnityEngine.Tilemaps;
-        
-            // If player collides with an object tilemap "Ground", set grounded to true
-            if (collision.gameObject.GetComponent<Tilemap>() != null)
-          
-                    
-                    
+    private BoxCollider2D boxCollider;
 
-            {
-            grounded = true;
-        }
+    void Start()
+    {
+        boxCollider = GetComponent<BoxCollider2D>();
     }
 
-    void OnCollisionExit2D(Collision2D collision)
+    void Update()
     {
-        // If player leaves collision with an object tagged "Ground", set grounded to false
-        if (collision.gameObject.GetComponent<Tilemap>() != null)
-        {
-            grounded = false;
-        }
+        // Check if this BoxCollider2D is touching anything at all
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.NoFilter(); // Accept all layers and types
+
+        Collider2D[] results = new Collider2D[5];
+        int touching = boxCollider.Overlap(filter, results);
+
+        grounded = touching > 0;
     }
 }

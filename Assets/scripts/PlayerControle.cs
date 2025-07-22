@@ -4,13 +4,13 @@ public class PlayerControle : MonoBehaviour
 {
     public float speedRight = 10f;
     public float speedLeft = 10f;
-    public float jumpStrength = 3f;
-    private Rigidbody2D rb;
+    private float jumpStrength = 10f;
+    private Rigidbody2D player;
     private isgrounded groundChecker;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
+        player = GetComponent<Rigidbody2D>();
         groundChecker = GetComponent<isgrounded>();
     }
 
@@ -26,14 +26,22 @@ public class PlayerControle : MonoBehaviour
             moveX = speedRight;
 
         // Set horizontal velocity, keep gravity effect on y
-        Vector2 velocity = rb.linearVelocity;
+        Vector2 velocity = player.linearVelocity;
         velocity.x = moveX;
-        rb.linearVelocity = velocity;
+        player.linearVelocity = velocity;
 
         // Jump only if grounded and W is pressed
         if (Input.GetKeyDown(KeyCode.W) && groundChecker.grounded)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpStrength);
+            // make jump with jumpStrength only if grounded
+            player.AddForce(Vector2.up * jumpStrength, ForceMode2D.Impulse);
+                
         }
+        //log player position for camera
+        //Debug.Log("Player Position: " + player.position);
+        //log player velocity for camera
+        // Debug.Log("Player Velocity: " + player.linearVelocity);
+        //log player grounded state for camera
+        Debug.Log("Player Grounded: " + groundChecker.grounded);
     }
 }
