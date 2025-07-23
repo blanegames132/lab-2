@@ -33,7 +33,7 @@ TextureImporter:
     heightScale: 0.25
     normalMapFilter: 0
     flipGreenChannel: 0
-  isReadable: 0
+  isReadable: 1
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
   vTOnly: 0
@@ -46,12 +46,12 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
-    wrapU: 1
-    wrapV: 1
-    wrapW: 1
+    wrapU: 0
+    wrapV: 0
+    wrapW: 0
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
@@ -166,10 +166,10 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: right
+      name: walk
       rect:
         serializedVersion: 2
-        x: 595
+        x: 596
         y: 20
         width: 246
         height: 400
@@ -183,28 +183,6 @@ TextureImporter:
       bones: []
       spriteID: 4a43f7a60bde2dc10800000000000000
       internalID: 2076983720127968420
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: left
-      rect:
-        serializedVersion: 2
-        x: 844
-        y: 22
-        width: 224
-        height: 397
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 8460a23559ecd66e0800000000000000
-      internalID: -1842589531783952824
       vertices: []
       indices: 
       edges: []
@@ -226,7 +204,7 @@ TextureImporter:
       back: -4298345892085953899
       front: 7468057293271108204
       left: -1842589531783952824
-      right: 2076983720127968420
+      walk: 2076983720127968420
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
