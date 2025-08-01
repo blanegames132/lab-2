@@ -23,11 +23,31 @@ public class PlayerControle : MonoBehaviour
     {
         float moveX = 0f;
         float hvalue = Input.GetAxis("Horizontal");
+        //declare attack trigger anim
+        //anim.SetTrigger("attack"); to right click
+
+       
+
         AnimatorStateInfo currrentstate = anim.GetCurrentAnimatorStateInfo(0);
         //Spriteflip(hvalue);
         player.linearVelocityX = hvalue * speed;
+        //if riht click just set if right click is pressed
+        if (Input.GetMouseButtonDown(0))
+        {
+            anim.SetBool("isattacking", true);
+        }
+        //if right click is released, set attack trigger to false
+        else if (Input.GetMouseButtonUp(0))
+        {
+            anim.SetBool("isattacking", false);
+        }
 
-       
+
+
+
+
+
+
 
 
 
@@ -54,12 +74,7 @@ public class PlayerControle : MonoBehaviour
 
         }
 
-        // Set horizontal velocity, keep gravity effect on y
-        // Vector2 velocity = player.linearVelocity;
-        // velocity.x = moveX;
-        //player.linearVelocity = velocity;
 
-        // Jump only if grounded and W is pressed
         if (Input.GetKeyDown(KeyCode.W) && groundChecker.grounded)
         {
             // make jump with jumpStrength only if grounded
