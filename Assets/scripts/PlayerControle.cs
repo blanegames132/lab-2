@@ -73,6 +73,11 @@ public class PlayerControle : MonoBehaviour
             anim.SetBool("isrunning", false);
 
         }
+        //if (hvalue)= -1, flip sprite to left animation
+        if (hvalue < 0)
+            GetComponent<SpriteRenderer>().flipX = true;
+        else if (hvalue > 0)
+            GetComponent<SpriteRenderer>().flipX = false;
 
 
         if (Input.GetKeyDown(KeyCode.W) && groundChecker.grounded)

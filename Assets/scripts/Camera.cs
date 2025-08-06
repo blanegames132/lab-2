@@ -2,27 +2,50 @@ using UnityEngine;
 
 public class camera : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [SerializeField] private float offsetDistance = 2f;  // How far ahead/behind the camera moves
+    [SerializeField] private float smoothSpeed = 5f;     // Camera follow speed
+    [SerializeField] private float deadZone = 0.05f;     // Ignore tiny velocity to avoid jitter
+
     void Start()
     {
-        //disable camera rotation
-        Camera.main.transform.rotation = Quaternion.identity;
-        // Set the camera to orthographic mode
-        
-        // Set the camera size to 5
-        Camera.main.orthographicSize = 5f;
-        Camera.main.orthographic = false;
-        // Set the camera position to (0, 0, -10)
-        Camera.main.transform.position = new Vector3(0, 0, -10);
-        //dont alow camera to rotate with player
+        // Ensure camera rotation is reset
         Camera.main.transform.rotation = Quaternion.Euler(0, 0, 0);
-
-
     }
 
-    // Update is called once per frame
-    void Update()
+    void LateUpdate() // Use LateUpdate to reduce camera jitter
     {
         Camera.main.transform.rotation = Quaternion.Euler(0, 0, 0);
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
+            Vector3 playerPosition = player.transform.position;
+            Vector3 cameraPosition = Camera.main.transform.position;
+
+            // Determine horizontal camera offset based on player velocity
+            if (rb.linearVelocity.x > deadZone)
+            {
+                cameraPosition.x = playerPosition.x + offsetDistance;
+            }
+            else if (rb.linearVelocity.x < -deadZone)
+            {
+                cameraPosition.x = playerPosition.x - offsetDistance;
+            }
+            else
+            {
+                cameraPosition.x = playerPosition.x;
+            }
+
+            // Always follow player's Y position
+            cameraPosition.y = playerPosition.y;
+
+            // Smoothly move the camera towards the target position
+            Camera.main.transform.position = Vector3.Lerp(
+                Camera.main.transform.position,
+                cameraPosition,
+                Time.deltaTime * smoothSpeed
+            );
+        }
     }
 }
