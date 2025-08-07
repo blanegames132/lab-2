@@ -5,14 +5,16 @@ public class camera : MonoBehaviour
     [SerializeField] private float offsetDistance = 2f;  // How far ahead/behind the camera moves
     [SerializeField] private float smoothSpeed = 5f;     // Camera follow speed
     [SerializeField] private float deadZone = 0.05f;     // Ignore tiny velocity to avoid jitter
+    [SerializeField] private float zoomSpeed = 5f;       // How fast the zoom changes
+    [SerializeField] private float minZoom = 5f;         // Minimum orthographic size (zoomed in)
+    [SerializeField] private float maxZoom = 20f;        // Maximum orthographic size (zoomed out)
 
     void Start()
     {
-        // Ensure camera rotation is reset
         Camera.main.transform.rotation = Quaternion.Euler(0, 0, 0);
     }
 
-    void LateUpdate() // Use LateUpdate to reduce camera jitter
+    void LateUpdate()
     {
         Camera.main.transform.rotation = Quaternion.Euler(0, 0, 0);
 
@@ -23,7 +25,6 @@ public class camera : MonoBehaviour
             Vector3 playerPosition = player.transform.position;
             Vector3 cameraPosition = Camera.main.transform.position;
 
-            // Determine horizontal camera offset based on player velocity
             if (rb.linearVelocity.x > deadZone)
             {
                 cameraPosition.x = playerPosition.x + offsetDistance;
@@ -37,15 +38,20 @@ public class camera : MonoBehaviour
                 cameraPosition.x = playerPosition.x;
             }
 
-            // Always follow player's Y position
             cameraPosition.y = playerPosition.y;
 
-            // Smoothly move the camera towards the target position
             Camera.main.transform.position = Vector3.Lerp(
                 Camera.main.transform.position,
                 cameraPosition,
                 Time.deltaTime * smoothSpeed
             );
+        }
+
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scroll != 0)
+        {
+            float targetZoom = Camera.main.orthographicSize - scroll * zoomSpeed;
+            Camera.main.orthographicSize = Mathf.Clamp(targetZoom, minZoom, maxZoom);
         }
     }
 }
