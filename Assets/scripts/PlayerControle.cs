@@ -41,6 +41,13 @@ public class PlayerControle : MonoBehaviour
         {
             anim.SetBool("isattacking", false);
         }
+        // 
+        if (groundChecker.grounded && transform.eulerAngles.z != 0f)
+        {
+            // Set rotation to zero on Z axis
+            transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+        }
+
 
 
 
@@ -96,5 +103,8 @@ public class PlayerControle : MonoBehaviour
         //log player grounded state for camera
         Debug.Log("Player Grounded: " + groundChecker.grounded);
     }
+      //log player
+
+    
 
 }
