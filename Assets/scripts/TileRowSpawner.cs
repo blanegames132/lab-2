@@ -1,81 +1,60 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using System.Collections.Generic;
 
 public class TileRowSpawner : MonoBehaviour
 {
     [SerializeField] private Tilemap groundTilemap;
     [SerializeField] private TileBase groundTileAsset;   // dirt
-    [SerializeField] private TileBase bushTileAsset;
-    [SerializeField] private TileBase grassTileAsset;
+    [SerializeField] private TileBase grassTileAsset;    // grass
     [SerializeField] private Transform playerTransform;
-    [SerializeField] private int tileSpawnDistance = 100;    // Distance ahead/behind the player (x) to spawn tiles
-    [SerializeField] private int tileDeleteDistance = 200;   // Distance ahead/behind the player (x) to delete tiles
-    [SerializeField] private int zLimit = 500;               // Max z index (exclusive)
 
-    private int leftSpawnedX;
-    private int rightSpawnedX;
-    private const int dirtYOffset = -100;
+    private int grassBand = 20;
+    private int dirtDepth = 10;
+    private int dirtAllowedDistance = 50;
+    private int zLayers = 2; // Number of layers in front/behind player
 
-    private void Start()
+    private HashSet<Vector3Int> spawnedTiles = new HashSet<Vector3Int>();
+    private int lastPlayerX = int.MinValue;
+    private int lastPlayerZ = int.MinValue;
+
+    void Update()
     {
         int playerX = Mathf.FloorToInt(playerTransform.position.x);
-        leftSpawnedX = playerX;
-        rightSpawnedX = playerX;
+        int playerZ = Mathf.FloorToInt(playerTransform.position.z);
 
-        // Spawn row at player X for all z
-        for (int z = 0; z < zLimit; z++)
+        // Only spawn when the player moves to a new column or layer
+        if (playerX != lastPlayerX || playerZ != lastPlayerZ)
         {
-            groundTilemap.SetTile(new Vector3Int(playerX, 0, z), grassTileAsset);
-            groundTilemap.SetTile(new Vector3Int(playerX, dirtYOffset, z), groundTileAsset);
-        }
-    }
-
-    private void Update()
-    {
-        int playerX = Mathf.FloorToInt(playerTransform.position.x);
-
-        // Spawn tiles to the right of the player
-        while (rightSpawnedX < playerX + tileSpawnDistance)
-        {
-            rightSpawnedX++;
-            for (int z = 0; z < zLimit; z++)
+            for (int x = playerX - grassBand; x <= playerX + grassBand; x++)
             {
-                groundTilemap.SetTile(new Vector3Int(rightSpawnedX, 0, z), grassTileAsset);
-                groundTilemap.SetTile(new Vector3Int(rightSpawnedX, dirtYOffset, z), groundTileAsset);
-            }
-        }
+                for (int z = playerZ - zLayers; z <= playerZ + zLayers; z++)
+                {
+                    // Spawn grass row
+                    Vector3Int grassPos = new Vector3Int(x, 0, z);
+                    if (!spawnedTiles.Contains(grassPos))
+                    {
+                        groundTilemap.SetTile(grassPos, grassTileAsset);
+                        spawnedTiles.Add(grassPos);
+                    }
 
-        // Spawn tiles to the left of the player
-        while (leftSpawnedX > playerX - tileSpawnDistance)
-        {
-            leftSpawnedX--;
-            for (int z = 0; z < zLimit; z++)
-            {
-                groundTilemap.SetTile(new Vector3Int(leftSpawnedX, 0, z), grassTileAsset);
-                groundTilemap.SetTile(new Vector3Int(leftSpawnedX, dirtYOffset, z), groundTileAsset);
+                    // Only spawn dirt if within 50 of the player
+                    if (Mathf.Abs(x - playerX) <= dirtAllowedDistance)
+                    {
+                        for (int y = -1; y >= -dirtDepth; y--)
+                        {
+                            Vector3Int dirtPos = new Vector3Int(x, y, z);
+                            if (!spawnedTiles.Contains(dirtPos))
+                            {
+                                groundTilemap.SetTile(dirtPos, groundTileAsset);
+                                spawnedTiles.Add(dirtPos);
+                            }
+                        }
+                    }
+                }
             }
-        }
-
-        // Delete tiles too far right
-        int maxRightDelete = playerX + tileDeleteDistance;
-        for (int x = rightSpawnedX; x > maxRightDelete; x--)
-        {
-            for (int z = 0; z < zLimit; z++)
-            {
-                groundTilemap.SetTile(new Vector3Int(x, 0, z), null);
-                groundTilemap.SetTile(new Vector3Int(x, dirtYOffset, z), null);
-            }
-        }
-
-        // Delete tiles too far left
-        int maxLeftDelete = playerX - tileDeleteDistance;
-        for (int x = leftSpawnedX; x < maxLeftDelete; x++)
-        {
-            for (int z = 0; z < zLimit; z++)
-            {
-                groundTilemap.SetTile(new Vector3Int(x, 0, z), null);
-                groundTilemap.SetTile(new Vector3Int(x, dirtYOffset, z), null);
-            }
+            lastPlayerX = playerX;
+            lastPlayerZ = playerZ;
         }
     }
 }
