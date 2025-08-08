@@ -21,12 +21,36 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] private float hillScale = 0.06f; // How fast the hills change (smaller = slower hills)
     [SerializeField] private float hillHeight = 3f;   // Max amplitude of hills
 
+    // --- RANDOMIZED HILLS ---
+    [SerializeField] private float hillRandomSeed = 1337f;
+    [SerializeField, Range(0f, 1f)] private float hillRandomAmplitude = 0.3f;
+
     private HashSet<Vector3Int> activeTiles = new HashSet<Vector3Int>();
     private Vector3Int previousPlayerPos;
 
     void Start()
     {
         previousPlayerPos = Vector3Int.FloorToInt(playerTransform.position);
+    }
+
+    float GetHillValue(int x, int z)
+    {
+        // Regular curve value
+        float curveValue = hillCurve.Evaluate(x * hillScale);
+
+        // Random noise value for extra variety
+        float noiseValue = Mathf.PerlinNoise(
+            x * hillScale + hillRandomSeed,
+            z * hillScale + hillRandomSeed * 0.5f // slight variation by z
+        );
+
+        // noiseValue is in [0,1], center it to [-0.5,0.5]
+        noiseValue -= 0.5f;
+
+        // Mix curve and noise
+        float finalValue = curveValue + (noiseValue * hillRandomAmplitude);
+
+        return finalValue;
     }
 
     void Update()
@@ -69,8 +93,8 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             {
                 for (int x = minX; x <= maxX; x++)
                 {
-                    // --- HILL LOGIC ---
-                    float hillValue = hillCurve.Evaluate(x * hillScale); // Use x, or you could also use z or both.
+                    // --- HILL LOGIC WITH RANDOMNESS ---
+                    float hillValue = GetHillValue(x, z);
                     int grassY = Mathf.RoundToInt(hillValue * hillHeight);
 
                     Vector3Int grassPos = new Vector3Int(x, grassY, z);
@@ -138,8 +162,8 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
             for (int x = minX; x <= maxX; x++)
             {
-                // --- HILL LOGIC ---
-                float hillValue = hillCurve.Evaluate(x * hillScale);
+                // --- HILL LOGIC WITH RANDOMNESS ---
+                float hillValue = GetHillValue(x, z);
                 int grassY = Mathf.RoundToInt(hillValue * hillHeight);
 
                 for (int y = grassY; y >= grassY - verticalDepth; y--)
@@ -157,8 +181,8 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         // Set collider only for the ground tile directly under the player
         foreach (var tile in activeTiles)
         {
-            // --- HILL LOGIC ---
-            float hillValue = hillCurve.Evaluate(tile.x * hillScale);
+            // --- HILL LOGIC WITH RANDOMNESS ---
+            float hillValue = GetHillValue(tile.x, tile.z);
             int hillY = Mathf.RoundToInt(hillValue * hillHeight);
 
             if (tile.x == playerX && tile.z == playerZ && tile.y == hillY)

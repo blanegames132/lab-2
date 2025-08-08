@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class PlayerControle : MonoBehaviour
 {
@@ -9,6 +10,9 @@ public class PlayerControle : MonoBehaviour
     private isgrounded groundChecker;
     private SpriteRenderer spriteRenderer;
     private int sortingOrder = 0;
+
+    // Add reference to the ground tilemap
+    [SerializeField] private Tilemap groundTilemap;
 
     // For layer changing cooldown
     private float layerChangeCooldown = 0.2f; // Normal seconds between layer changes
@@ -32,8 +36,8 @@ public class PlayerControle : MonoBehaviour
 
         AnimatorStateInfo currrentstate = anim.GetCurrentAnimatorStateInfo(0);
 
-        // Set player horizontal velocity
-        player.linearVelocityX = hvalue * speed;
+        // Set player horizontal velocity (fix for Rigidbody2D)
+        player.linearVelocity = new Vector2(hvalue * speed, player.linearVelocity.y);
 
         if (Input.GetMouseButtonDown(0))
             anim.SetBool("isattacking", true);
@@ -79,6 +83,19 @@ public class PlayerControle : MonoBehaviour
                 spriteRenderer.sortingOrder = sortingOrder;
                 Vector3 pos = transform.position;
                 pos.z = sortingOrder;
+
+                // --- Check for ground block below in new Z layer ---
+                Vector3Int gridPos = groundTilemap.WorldToCell(new Vector3(pos.x, pos.y, pos.z));
+                for (int checkY = Mathf.FloorToInt(pos.y); checkY > Mathf.FloorToInt(pos.y) - 3; checkY--)
+                {
+                    Vector3Int belowPos = new Vector3Int(gridPos.x, checkY, sortingOrder);
+                    TileBase tile = groundTilemap.GetTile(belowPos);
+                    if (tile != null)
+                    {
+                        pos.y = checkY + 1.1f; // Move player up so its feet are above the block
+                        break;
+                    }
+                }
                 transform.position = pos;
                 Debug.Log("Layer Down: sortingOrder=" + sortingOrder + ", z=" + pos.z);
                 layerChangeTimer = currentCooldown;
@@ -90,6 +107,19 @@ public class PlayerControle : MonoBehaviour
                 spriteRenderer.sortingOrder = sortingOrder;
                 Vector3 pos = transform.position;
                 pos.z = sortingOrder;
+
+                // --- Check for ground block below in new Z layer ---
+                Vector3Int gridPos = groundTilemap.WorldToCell(new Vector3(pos.x, pos.y, pos.z));
+                for (int checkY = Mathf.FloorToInt(pos.y); checkY > Mathf.FloorToInt(pos.y) - 3; checkY--)
+                {
+                    Vector3Int belowPos = new Vector3Int(gridPos.x, checkY, sortingOrder);
+                    TileBase tile = groundTilemap.GetTile(belowPos);
+                    if (tile != null)
+                    {
+                        pos.y = checkY + 1.1f; // Move player up so its feet are above the block
+                        break;
+                    }
+                }
                 transform.position = pos;
                 Debug.Log("Layer Up: sortingOrder=" + sortingOrder + ", z=" + pos.z);
                 layerChangeTimer = currentCooldown;
