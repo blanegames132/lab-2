@@ -8,6 +8,7 @@ public class camera : MonoBehaviour
     [SerializeField] private float zoomSpeed = 5f;       // How fast the zoom changes
     [SerializeField] private float minZoom = 5f;         // Minimum orthographic size (zoomed in)
     [SerializeField] private float maxZoom = 20f;        // Maximum orthographic size (zoomed out)
+    [SerializeField] private float zOffset = -5f;        // Camera stays 5 units behind player
 
     void Start()
     {
@@ -39,6 +40,7 @@ public class camera : MonoBehaviour
             }
 
             cameraPosition.y = playerPosition.y;
+            cameraPosition.z = playerPosition.z + zOffset;  // Always 5 layers behind player
 
             Camera.main.transform.position = Vector3.Lerp(
                 Camera.main.transform.position,

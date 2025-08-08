@@ -1,7 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Controls parallax scrolling effect for background elements that follow the camera
+/// Controls parallax scrolling effect for background elements that follow the camera.
+/// Keeps background Z position always 2 less than player's current Z position.
 /// </summary>
 public class ParallaxBackground : MonoBehaviour
 {
@@ -14,50 +15,56 @@ public class ParallaxBackground : MonoBehaviour
     private Material material;
     private Vector2 lastCameraPosition;
     private Vector2 textureOffset = Vector2.zero;
+    private GameObject player;
 
-    private void Start()
+    void Start()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
         mainCamera = Camera.main;
+        player = GameObject.FindGameObjectWithTag("Player");
 
         // Cache the material and set initial texture
         material = spriteRenderer.material;
         material.SetTexture("_MainTex", spriteRenderer.sprite.texture);
 
-        // Initialize camera position tracking
         lastCameraPosition = mainCamera.transform.position;
     }
 
-    private void LateUpdate()
+    void LateUpdate()
     {
-        // Get current camera position
+        // Parallax movement
         Vector2 currentCameraPosition = mainCamera.transform.position;
-
-        // Calculate camera movement delta
         Vector2 deltaMovement = currentCameraPosition - lastCameraPosition;
-
-        // Update texture offset based on parallax speed (inverted for correct parallax effect)
         textureOffset += deltaMovement * parallaxSpeed;
 
-        // Wrap offset values between 0-1 using modulo
-        textureOffset.x = Mathf.Repeat(textureOffset.x, 1.0f);
-        textureOffset.y = Mathf.Repeat(textureOffset.y, 1.0f);
-
-        // Update shader parameters
         if (spriteRenderer.sprite.texture != material.GetTexture("_MainTex"))
-        {
             material.SetTexture("_MainTex", spriteRenderer.sprite.texture);
-        }
 
         material.SetFloat("_XOffset", textureOffset.x);
         material.SetFloat("_YOffset", textureOffset.y);
 
-        // Update position to follow camera
-        transform.position = new Vector2(currentCameraPosition.x, currentCameraPosition.y + yPosOffset);
+        // Find player if missing
+        if (player == null)
+            player = GameObject.FindGameObjectWithTag("Player");
 
-        // Store current position for next frame
+        float playerZ = 0f;
+        if (player != null)
+        {
+            playerZ = player.transform.position.z;
+        }
+
+        float bgZ = playerZ - 2;
+
+        // Set background Z; can go infinitely positive or negative!
+        transform.position = new Vector3(
+            currentCameraPosition.x,
+            currentCameraPosition.y + yPosOffset,
+            bgZ
+        );
+
         lastCameraPosition = currentCameraPosition;
 
-        if (debugMode) Debug.Log($"Texture offset: {textureOffset}");
+        if (debugMode)
+            Debug.Log($"Player Z: {playerZ}, Background Z: {bgZ}, Texture offset: {textureOffset}");
     }
 }
