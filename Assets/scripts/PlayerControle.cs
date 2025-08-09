@@ -1,58 +1,39 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using System.Collections.Generic;
 
 public class PlayerControle : MonoBehaviour
 {
-    public float speed = 10f;
-    private float jumpStrength = 10f;
-    private Rigidbody2D player;
-    private Animator anim;
-    private isgrounded groundChecker;
-    private SpriteRenderer spriteRenderer;
+    [Header("References")]
+    [SerializeField] private isgrounded groundChecker;
+    [SerializeField] private SpriteRenderer spriteRenderer;
+    [SerializeField] private TileInfiniteCameraSpawner spawner;
+    [SerializeField] private PlayerAnimatorController animatorController;
+    [SerializeField] private PlayerMovement playerMovement; // Reference to movement script
 
+    [Header("Tiles & World")]
     [SerializeField] private Tilemap groundTilemap;
     [SerializeField] private Tilemap middleFrontTilemap;
     [SerializeField] private Tilemap middleBackTilemap;
     [SerializeField] private float worldBottomY = -500f;
 
-    private TileInfiniteCameraSpawner spawner;
-
-    private bool movementLocked = false;
-    private float movementLockTimer = 0f;
-    private const float movementLockDuration = 0.05f;
+    [Header("Movement Lock")]
+    [SerializeField] private bool movementLocked = false;
+    [SerializeField] private float movementLockTimer = 0f;
+    [SerializeField] private float movementLockDuration = 0.05f;
 
     void Start()
     {
-        player = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>();
-        groundChecker = GetComponent<isgrounded>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        spawner = FindObjectOfType<TileInfiniteCameraSpawner>();
+        if (!groundChecker) groundChecker = GetComponent<isgrounded>();
+        if (!spriteRenderer) spriteRenderer = GetComponent<SpriteRenderer>();
+        if (!spawner) spawner = FindObjectOfType<TileInfiniteCameraSpawner>();
+        if (!animatorController) animatorController = GetComponent<PlayerAnimatorController>();
+        if (!playerMovement) playerMovement = GetComponent<PlayerMovement>();
 
-        ClampToNearestGroundAtStart();
+        // Clamp logic is now handled by AlwaysStartOnGround.cs!
         UpdateSortingOrder();
     }
 
-    void ClampToNearestGroundAtStart()
-    {
-        if (spawner == null)
-        {
-            Debug.LogWarning("No TileInfiniteCameraSpawner found!");
-            return;
-        }
-        Vector3 pos = transform.position;
-        int x = Mathf.RoundToInt(pos.x);
-        int z = Mathf.RoundToInt(pos.z);
-
-        int surfaceY = spawner.GetSurfaceY(x, z);
-
-        pos.y = surfaceY + 1.1f;
-        pos.z = z;
-        transform.position = pos;
-        UpdateSortingOrder();
-        Debug.Log($"Player clamped to ground at {pos}");
-    }
+    // --- rest of the original code (surface finding, collision, snap to ground, etc.) ---
 
     public void SnapToGroundOnLayer(int zLayer)
     {
@@ -102,8 +83,6 @@ public class PlayerControle : MonoBehaviour
         return IsBlockedTile(cell);
     }
 
-    // --- MODIFIED FUNCTION ---
-    // Finds the closest free spot to a target position, within a max radius
     Vector3? FindClosestFreeSpot(Vector3 targetPosition, int maxRadius = 8)
     {
         int targetZ = Mathf.RoundToInt(targetPosition.z);
@@ -136,12 +115,11 @@ public class PlayerControle : MonoBehaviour
                     }
                 }
             }
-            if (closestPos != null) break; // break early if found in smaller radius
+            if (closestPos != null) break;
         }
         return closestPos;
     }
 
-    // Push player to the closest free spot, considering proximity to intended move
     void PushToClosestOpenArea(Vector3? intendedTarget = null)
     {
         Vector3 pos = transform.position;
@@ -152,7 +130,6 @@ public class PlayerControle : MonoBehaviour
         if (closestFree != null)
         {
             transform.position = closestFree.Value;
-            player.linearVelocity = Vector2.zero;
             UpdateSortingOrder();
             Debug.Log("Player pushed to closest open area: " + closestFree);
 
@@ -178,81 +155,5 @@ public class PlayerControle : MonoBehaviour
         spriteRenderer.sortingOrder = Mathf.RoundToInt(transform.position.z);
     }
 
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Space) && IsGroundedOnCurrentLayer())
-        {
-            player.AddForce(Vector2.up * jumpStrength, ForceMode2D.Impulse);
-        }
-
-        if (movementLocked)
-        {
-            movementLockTimer -= Time.deltaTime;
-            if (movementLockTimer <= 0f)
-            {
-                movementLocked = false;
-            }
-            else
-            {
-                player.linearVelocity = Vector2.zero;
-                return;
-            }
-        }
-
-        float hValue = Input.GetAxisRaw("Horizontal");
-        float vValue = Input.GetAxisRaw("Vertical");
-        float moveX = hValue * speed;
-        float moveZ = vValue * speed;
-
-        // --- MODIFIED COLLISION-AWARE MOVEMENT LOGIC ---
-        Vector3 prospectiveMove = transform.position + new Vector3(moveX * Time.deltaTime, 0f, moveZ * Time.deltaTime);
-
-        if (IsPositionBlocked(transform.position))
-        {
-            Debug.Log("Player is overlapping blocked tile, movement disabled and will be pushed.");
-            PushToClosestOpenArea(prospectiveMove); // pass intended move
-            player.linearVelocity = Vector2.zero;
-            return;
-        }
-
-        // Always check for a closer free spot
-        if (!IsPositionBlocked(prospectiveMove))
-        {
-            Vector3? closerFree = FindClosestFreeSpot(prospectiveMove);
-            if (closerFree != null && Vector3.Distance(transform.position, closerFree.Value) < Vector3.Distance(transform.position, prospectiveMove))
-            {
-                transform.position = closerFree.Value;
-            }
-            else
-            {
-                transform.position = prospectiveMove;
-            }
-            UpdateSortingOrder();
-        }
-
-        speed = Input.GetKey(KeyCode.LeftShift) ? 20f : 10f;
-        anim.SetBool("isrunning", Input.GetKey(KeyCode.LeftShift));
-
-        if (hValue < 0) spriteRenderer.flipX = true;
-        else if (hValue > 0) spriteRenderer.flipX = false;
-
-        anim.SetFloat("hvalue", Mathf.Abs(hValue));
-        anim.SetBool("isGrounded", IsGroundedOnCurrentLayer());
-
-        if (Input.GetMouseButtonDown(0))
-            anim.SetBool("isattacking", true);
-        else if (Input.GetMouseButtonUp(0))
-            anim.SetBool("isattacking", false);
-
-        if (transform.position.y < worldBottomY)
-        {
-            Debug.LogWarning("Player fell below world! Respawning...");
-            SnapToGroundOnLayer(Mathf.RoundToInt(transform.position.z));
-            player.linearVelocity = Vector2.zero;
-        }
-
-        Debug.Log("isGrounded: " + IsGroundedOnCurrentLayer());
-        Debug.Log("Player Position: " + player.position);
-        Debug.Log("Player Velocity: " + player.linearVelocity);
-    }
+    // ... rest of your non-movement logic ...
 }
