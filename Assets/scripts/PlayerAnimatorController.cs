@@ -3,7 +3,7 @@ using UnityEngine;
 [RequireComponent(typeof(Animator))]
 public class PlayerAnimatorController : MonoBehaviour
 {
-    [SerializeField] public Animator anim;
+    public Animator anim;
     [SerializeField] private SpriteRenderer spriteRenderer;
 
     void Awake()
@@ -12,9 +12,6 @@ public class PlayerAnimatorController : MonoBehaviour
         if (!spriteRenderer) spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
-    /// <summary>
-    /// Call this every frame from your movement/controller script.
-    /// </summary>
     public void UpdateAnimator(float hValue, bool isRunning, bool isGrounded)
     {
         anim.SetBool("isrunning", isRunning);
@@ -26,9 +23,6 @@ public class PlayerAnimatorController : MonoBehaviour
         anim.SetBool("isGrounded", isGrounded);
     }
 
-    /// <summary>
-    /// Call when attacking state changes.
-    /// </summary>
     public void SetAttacking(bool isAttacking)
     {
         anim.SetBool("isattacking", isAttacking);

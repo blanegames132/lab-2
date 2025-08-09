@@ -8,7 +8,6 @@ using UnityEngine.Tilemaps;
 // --- ESSENTIAL WORLD GENERATION COMPONENT ---
 public class TileInfiniteCameraSpawner : MonoBehaviour
 {
-    // --- ESSENTIAL: HILL RANDOMIZATION ---
     [Header("Hill Randomization")]
     [SerializeField] public string hillRandomSeed = "";
     [SerializeField, Tooltip("The actual integer hash generated from hillRandomSeed. Changing this does nothing.")]
@@ -16,7 +15,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField, Tooltip("The actual string seed used (random if blank at start).")]
     private string usedSeedString;
 
-    // --- ESSENTIAL: HILL SHAPE/GENERATION CONTROLS ---
     [Header("Hill Shape Controls")]
     [SerializeField] private AnimationCurve hillCurve;
     [SerializeField] public float hillHeight;
@@ -28,20 +26,19 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] private float hillRandomAmplitude;
     [SerializeField] private float hillVerticalShift;
 
-    // --- ESSENTIAL: TILEMAPS AND TILE ASSETS ---
     [Header("Tilemap Setup")]
     [SerializeField] private Tilemap groundTilemap;
     [SerializeField] private Tilemap frontTilemap;
     [SerializeField] private Tilemap middleFrontTilemap;
     [SerializeField] private Tilemap middleBackTilemap;
-    [SerializeField] private Tilemap backTilemap; // Back layer
+    [SerializeField] private Tilemap backTilemap;
     [SerializeField] private TileBase groundTileAsset;
     [SerializeField] private TileBase grassTileAsset;
+    [SerializeField] private TileBase hideTileAsset;
     [SerializeField] private Camera cam;
     [SerializeField] private Transform playerTransform;
     [SerializeField] private int buffer;
 
-    // --- ESSENTIAL: ADVANCED RANDOM/SEED CONTROLS ---
     [Header("Advanced Seed Controls")]
     [SerializeField] private float repeatRange;
     [SerializeField] private float curveShift;
@@ -50,21 +47,14 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] private float perlinStrength;
     [SerializeField] private float perlinBase;
 
-    // --- ESSENTIAL: WORLD BOUNDS ---
     [Header("World Controls")]
     [SerializeField] private int worldBottomY;
 
-    // --- ESSENTIAL: DEBUGGING FOR HIDDEN TILES ---
-    [Header("Debug")]
-    [SerializeField] public bool debugShowHiddenTiles = false;
-    [SerializeField] public TileBase debugOrangeTileAsset;
-
-    // --- ESSENTIAL: INTERNAL STATE ---
+    // --- INTERNAL STATE ---
     private AnimationCurve randomHillCurve;
     private HashSet<Vector3Int> activeTiles = new HashSet<Vector3Int>();
     private HashSet<Vector3Int> hiddenTiles = new HashSet<Vector3Int>();
 
-    // --- ESSENTIAL: INIT AND RANDOM SEED ---
     void Awake()
     {
         if (string.IsNullOrEmpty(hillRandomSeed) || hillRandomSeed.ToLower() == "random")
@@ -88,7 +78,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         ApplySeedRandomization();
     }
 
-    // --- ESSENTIAL: GET SURFACE Y FOR PLAYER AND COLLISION ---
     public int GetSurfaceY(int x, int z)
     {
         float hillValue = GetHillValue(x, z);
@@ -96,7 +85,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         return surfaceY;
     }
 
-    // --- ESSENTIAL: HASH FOR RANDOMIZATION ---
     int HashSeed(string seed)
     {
         using (SHA256 sha = SHA256.Create())
@@ -106,7 +94,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         }
     }
 
-    // --- ESSENTIAL: SEEDED RANDOM VALUE HELPERS ---
     float SeededValue(System.Random rand, float min, float max, int offset)
     {
         rand = new System.Random(rand.Next() + offset);
@@ -118,7 +105,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         return rand.Next(min, max);
     }
 
-    // --- ESSENTIAL: RANDOMIZE HILL SHAPE ---
     void ApplySeedRandomization()
     {
         int hash = HashSeed(usedSeedString);
@@ -157,7 +143,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         }
     }
 
-    // --- ESSENTIAL: HEIGHT AT X/Z FOR WORLD GEN ---
     public float GetHillValue(int x, int z)
     {
         float layerOffset = Mathf.PerlinNoise(z * hillNoiseScale + perlinOffsetZ, curveShift * 0.29f) * 2f - 1f;
@@ -174,14 +159,8 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         return finalValue;
     }
 
-    // --- ESSENTIAL: WORLD GENERATION AND COLLISION UPDATE ---
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.O))
-        {
-            debugShowHiddenTiles = !debugShowHiddenTiles;
-        }
-
         if (cam == null) cam = Camera.main;
         if (playerTransform == null) return;
         if (groundTilemap == null || frontTilemap == null || middleFrontTilemap == null || middleBackTilemap == null || backTilemap == null || groundTileAsset == null || grassTileAsset == null) return;
@@ -319,6 +298,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             }
         }
 
+        // --- COLLIDER SETUP: Only the main ground layer (playerZ) gets colliders ---
         foreach (var tile in activeTiles)
         {
             if (tile.z == playerZ)
@@ -338,7 +318,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         HideHalfCircleBelowPlayer(playerTransform.position, 4);
     }
 
-    // --- ESSENTIAL: DEBUG/HIDDEN TILE LOGIC ---
+    // --- ESSENTIAL: HIDE TILES BELOW PLAYER ---
     private void HideHalfCircleBelowPlayer(Vector3 playerWorldPos, int radius)
     {
         Vector2Int playerXY = new Vector2Int(Mathf.RoundToInt(playerWorldPos.x), Mathf.RoundToInt(playerWorldPos.y));
@@ -353,42 +333,40 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             for (int dy = -radius; dy <= 0; dy++)
             {
                 if (dx * dx + dy * dy > radius * radius) continue;
-
                 Vector2Int offset = new Vector2Int(dx, dy);
                 Vector2Int tileXY = playerXY + offset;
-
                 foreach (int z in layerZs)
                 {
                     Vector3Int pos = new Vector3Int(tileXY.x, tileXY.y, z);
                     if (tileXY == playerXY && z == playerZ) continue;
-                    if (debugShowHiddenTiles && debugOrangeTileAsset != null)
-                    {
-                        frontTilemap.SetTile(pos, debugOrangeTileAsset);
-                        frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
-                        middleFrontTilemap.SetTile(pos, debugOrangeTileAsset);
-                        middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
-                        currentlyHidden.Add(pos);
-                    }
-                    else
-                    {
-                        frontTilemap.SetTile(pos, null);
-                        frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
-                        middleFrontTilemap.SetTile(pos, null);
-                        middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
-                        currentlyHidden.Add(pos);
-                    }
+
+                    // Hide the tile by replacing it with the hideTileAsset
+                    // Only on the front and middleFront layers (adjust as needed)
+                    frontTilemap.SetTile(pos, hideTileAsset);
+                    frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
+                    frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
+
+                    middleFrontTilemap.SetTile(pos, hideTileAsset);
+                    middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
+                    middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
+
+                    currentlyHidden.Add(pos);
                 }
             }
         }
 
+        // Unhide any previously hidden tiles not in the current set
         foreach (var pos in hiddenTiles)
         {
             if (!currentlyHidden.Contains(pos))
             {
                 frontTilemap.SetTile(pos, null);
                 frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
+                frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
+
                 middleFrontTilemap.SetTile(pos, null);
                 middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
+                middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
             }
         }
 

@@ -3,6 +3,8 @@ using UnityEngine.Tilemaps;
 
 /// <summary>
 /// Handles player movement, jump logic, and checks for walls to disable movement in blocked directions.
+/// Prevents Z movement if a middle back tile or a debug ground tile is in the way.
+/// Allows setting which tilemap should be used as the "middle back" tilemap.
 /// </summary>
 public class PlayerMovement : MonoBehaviour
 {
@@ -15,7 +17,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Rigidbody2D player;
     [SerializeField] private Tilemap groundTilemap;
     [SerializeField] private Tilemap middleFrontTilemap;
-    [SerializeField] private Tilemap middleBackTilemap;
+    [SerializeField] private Tilemap middleBackTilemap; // You can now set this in the inspector!
+    [SerializeField] private Tilemap debugGroundTilemap;
     [SerializeField] private PlayerAnimatorController animatorController;
     [SerializeField] private isgrounded groundChecker; // Your grounded script!
 
@@ -32,7 +35,6 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // Get grounded state from your isgrounded script
         bool isGrounded = groundChecker != null ? groundChecker.grounded : IsGrounded();
 
         // If grounded, set rotation back to zero
@@ -41,7 +43,7 @@ public class PlayerMovement : MonoBehaviour
             transform.rotation = Quaternion.identity;
         }
 
-        // Set animator parameter (this is the bool for "isGrounded" in your Animator)
+        // Set animator parameter
         if (animatorController != null && animatorController.anim != null)
         {
             animatorController.anim.SetBool("isGrounded", isGrounded);
@@ -58,36 +60,30 @@ public class PlayerMovement : MonoBehaviour
         if (hValue < 0 && !IsWall(Vector3.left))
             moveX = -speed * Time.deltaTime;
 
-        // This is the corrected part
-        if (vValue > 0 && !IsWall(Vector3.forward))
+        // Z movement is prevented if a middleBack tile or debug ground tile is in the way
+        if (vValue > 0 && !IsWall(Vector3.forward) && !IsMiddleBackOrDebugInWay(Vector3.forward))
             moveZ = speed * Time.deltaTime;
-        if (vValue < 0 && !IsWall(Vector3.back))
+        if (vValue < 0 && !IsWall(Vector3.back) && !IsMiddleBackOrDebugInWay(Vector3.back))
             moveZ = -speed * Time.deltaTime;
 
         transform.position += new Vector3(moveX, 0f, moveZ);
 
-        // Jump Logic (only if isGrounded is true and jump isn't already in progress)
+        // Jump Logic
         if (isGrounded && Input.GetKeyDown(KeyCode.Space) && !isJumping)
         {
             isJumping = true;
             jumpTimeCounter = maxJumpTime;
             player.linearVelocity = new Vector2(player.linearVelocity.x, jumpSpeed);
         }
-
-        // Continue jump only if jump started while grounded
         if (isJumping && Input.GetKey(KeyCode.Space) && jumpTimeCounter > 0)
         {
             player.linearVelocity = new Vector2(player.linearVelocity.x, jumpSpeed);
             jumpTimeCounter -= Time.deltaTime;
         }
-
-        // Stop jump if released or jump time exceeded
         if (Input.GetKeyUp(KeyCode.Space) || jumpTimeCounter <= 0)
         {
             isJumping = false;
         }
-
-        // If player lands, reset jump
         if (isGrounded && !Input.GetKey(KeyCode.Space))
         {
             isJumping = false;
@@ -106,14 +102,32 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // Checks for any world tile (ground, middleFront, middleBack) as a wall
     bool IsWall(Vector3 direction)
     {
         Vector3 checkPos = transform.position + direction;
         int zLayer = Mathf.RoundToInt(checkPos.z);
         Vector3Int cell = groundTilemap.WorldToCell(new Vector3(checkPos.x, checkPos.y, zLayer));
         bool blocked = groundTilemap.GetTile(cell) != null ||
-                       middleBackTilemap.GetTile(cell) != null ||
-                       middleFrontTilemap.GetTile(cell) != null;
+                       (middleBackTilemap != null && middleBackTilemap.GetTile(cell) != null) ||
+                       (middleFrontTilemap != null && middleFrontTilemap.GetTile(cell) != null);
+        return blocked;
+    }
+
+    // Prevent Z movement if middleBack or debug ground is in the way
+    bool IsMiddleBackOrDebugInWay(Vector3 direction)
+    {
+        Vector3 checkPos = transform.position + direction;
+        int zLayer = Mathf.RoundToInt(checkPos.z);
+        Vector3Int cell = groundTilemap.WorldToCell(new Vector3(checkPos.x, checkPos.y, zLayer));
+        bool blocked = false;
+
+        if (middleBackTilemap != null && middleBackTilemap.GetTile(cell) != null)
+            blocked = true;
+
+        if (debugGroundTilemap != null && debugGroundTilemap.GetTile(cell) != null)
+            blocked = true;
+
         return blocked;
     }
 
