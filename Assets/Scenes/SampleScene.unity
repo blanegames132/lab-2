@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 127414185}
   - component: {fileID: 127414186}
+  - component: {fileID: 127414187}
   m_Layer: 0
   m_Name: tilemanager
   m_TagString: Untagged
@@ -340,6 +341,7 @@ MonoBehaviour:
   backTilemap: {fileID: 840299867}
   groundTileAsset: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   grassTileAsset: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+  hideTileAsset: {fileID: 0}
   cam: {fileID: 519420031}
   playerTransform: {fileID: 892277581}
   buffer: 3
@@ -350,8 +352,28 @@ MonoBehaviour:
   perlinStrength: 0.8920873
   perlinBase: 0.75954044
   worldBottomY: -589
+--- !u!114 &127414187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0c56526393669a4094b4c161117e361, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  debugTilemap: {fileID: 1367466478}
+  debugOrangeTileAsset: {fileID: 11400000, guid: 8e4c5ab312251b2409d0f71a6827581f, type: 2}
+  debugRadius: 4
   debugShowHiddenTiles: 0
-  debugOrangeTileAsset: {fileID: 0}
+  debugShowColliders: 0
+  groundTilemap: {fileID: 1367466478}
+  middleFrontTilemap: {fileID: 854121014}
+  middleBackTilemap: {fileID: 1899764065}
+  frontTilemap: {fileID: 2050080548}
+  backTilemap: {fileID: 840299867}
 --- !u!1 &202588161
 GameObject:
   m_ObjectHideFlags: 0
@@ -1513,7 +1535,6 @@ GameObject:
   m_Component:
   - component: {fileID: 892277581}
   - component: {fileID: 892277580}
-  - component: {fileID: 892277584}
   - component: {fileID: 892277582}
   - component: {fileID: 892277583}
   - component: {fileID: 892277585}
@@ -1522,6 +1543,8 @@ GameObject:
   - component: {fileID: 892277588}
   - component: {fileID: 892277589}
   - component: {fileID: 892277590}
+  - component: {fileID: 892277592}
+  - component: {fileID: 892277591}
   m_Layer: 7
   m_Name: player
   m_TagString: Player
@@ -1673,32 +1696,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &892277584
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 892277579}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ba162565f77521949908715037e7a498, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 10
-  jumpStrength: 10
-  player: {fileID: 0}
-  groundChecker: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  spawner: {fileID: 0}
-  animatorController: {fileID: 0}
-  groundTilemap: {fileID: 1367466478}
-  middleFrontTilemap: {fileID: 1899764065}
-  middleBackTilemap: {fileID: 854121014}
-  worldBottomY: -500
-  movementLocked: 0
-  movementLockTimer: 0
-  movementLockDuration: 0.05
 --- !u!114 &892277585
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1773,7 +1770,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 638d54f87e0f25544a953014659fb803, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  anim: {fileID: 0}
+  anim: {fileID: 892277587}
+  spriteRenderer: {fileID: 0}
 --- !u!114 &892277590
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1786,7 +1784,56 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e53952188c60a2a4ba4d312440fdb007, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawner: {fileID: 0}
+  spawner: {fileID: 127414186}
+--- !u!114 &892277591
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892277579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bf4539e2cac8374fb588648d1897785, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  groundChecker: {fileID: 892277585}
+  spriteRenderer: {fileID: 892277580}
+  spawner: {fileID: 127414186}
+  animatorController: {fileID: 892277589}
+  playerMovement: {fileID: 892277592}
+  groundTilemap: {fileID: 1367466478}
+  middleFrontTilemap: {fileID: 1899764065}
+  middleBackTilemap: {fileID: 854121014}
+  worldBottomY: -500
+  movementLocked: 0
+  movementLockTimer: 0
+  movementLockDuration: 0.05
+  speed: 10
+--- !u!114 &892277592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892277579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f242a6fba8821d749acbd26bddbbd36c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 10
+  jumpSpeed: 12
+  maxJumpTime: 0.35
+  player: {fileID: 892277583}
+  groundTilemap: {fileID: 1367466478}
+  middleFrontTilemap: {fileID: 1899764065}
+  middleBackTilemap: {fileID: 854121014}
+  debugGroundTilemap: {fileID: 0}
+  animatorController: {fileID: 0}
+  groundChecker: {fileID: 0}
+  isJumping: 0
+  jumpTimeCounter: 0
 --- !u!1 &1252756429
 GameObject:
   m_ObjectHideFlags: 0
