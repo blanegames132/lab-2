@@ -5,7 +5,6 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-// --- ESSENTIAL WORLD GENERATION COMPONENT ---
 public class TileInfiniteCameraSpawner : MonoBehaviour
 {
     [Header("Hill Randomization")]
@@ -50,10 +49,12 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [Header("World Controls")]
     [SerializeField] private int worldBottomY;
 
-    // --- INTERNAL STATE ---
+    [Header("Hidden Tiles")]
+    [SerializeField] private TileHiddenSet tileHiddenSet; // assign in Inspector
+
     private AnimationCurve randomHillCurve;
     private HashSet<Vector3Int> activeTiles = new HashSet<Vector3Int>();
-    private HashSet<Vector3Int> hiddenTiles = new HashSet<Vector3Int>();
+    private HashSet<Vector3Int> previouslyHidden = new HashSet<Vector3Int>();
 
     void Awake()
     {
@@ -114,7 +115,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
         seedScale = SeededValue(rand, 0.05f, 0.2f, 1);
         seedAmplitude = SeededValue(rand, 0.6f, 3.0f, 2);
-        repeatRange = SeededValue(rand, 8f, 28f, 3);
+        // repeatRange = SeededValue(rand, 8f, 28f, 3); // NOT USED
         hillHeight = SeededValue(rand, 3f, 15f, 4);
         hillCurveRandomJitter = SeededValue(rand, 0.08f, 0.7f, 5);
         hillRandomAmplitude = SeededValue(rand, 0.05f, 0.9f, 6);
@@ -130,14 +131,15 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         worldBottomY = SeededInt(rand, -600, -200, 16);
 
         randomHillCurve = new AnimationCurve();
-        int numKeys = SeededInt(rand, 4, 8, 17);
+        // Make a long, smooth curve (not [-1,1], but [0,1] or [0,3] etc)
+        int numKeys = SeededInt(rand, 8, 20, 17);
         for (int i = 0; i < numKeys; i++)
         {
-            float t = Mathf.Lerp(-1f, 1f, (float)i / (numKeys - 1));
+            float t = Mathf.Lerp(0f, 1f, (float)i / (numKeys - 1));
             float baseValue = Mathf.Sin(t * Mathf.PI * SeededValue(rand, 1f, 2f, 20 + i));
             float value = baseValue * cliffSharpness + SeededValue(rand, -hillCurveRandomJitter, hillCurveRandomJitter, 100 + i);
             randomHillCurve.AddKey(new Keyframe(
-                t + curveShift * ((float)i / numKeys),
+                t,
                 Mathf.Clamp(value, -cliffSharpness, cliffSharpness)
             ));
         }
@@ -147,7 +149,10 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     {
         float layerOffset = Mathf.PerlinNoise(z * hillNoiseScale + perlinOffsetZ, curveShift * 0.29f) * 2f - 1f;
         float t = x * seedScale + curveShift + z * seedScale * 0.11f + layerOffset * hillRandomAmplitude * 2f;
-        float tCurve = Mathf.Repeat(t, repeatRange) / (repeatRange / 2f) - 1f;
+
+        // Use a long, non-repeating curve: scale/shift t to [0,1] input range
+        float tCurve = (t * 0.001f) + 0.5f; // shift so 0,0 is in middle, scale for slow change
+        tCurve = Mathf.Clamp01(tCurve); // Clamp so you don't sample outside the curve
         float curveValue = randomHillCurve.Evaluate(tCurve) * seedAmplitude;
 
         float noiseValue = Mathf.PerlinNoise(x * hillNoiseScale + perlinOffsetX, z * hillNoiseScale + perlinOffsetZ);
@@ -298,7 +303,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             }
         }
 
-        // --- COLLIDER SETUP: Only the main ground layer (playerZ) gets colliders ---
         foreach (var tile in activeTiles)
         {
             if (tile.z == playerZ)
@@ -315,67 +319,86 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             backTilemap.SetColliderType(tile, Tile.ColliderType.None);
         }
 
-        HideHalfCircleBelowPlayer(playerTransform.position, 4);
-    }
-
-    // --- ESSENTIAL: HIDE TILES BELOW PLAYER ---
-    private void HideHalfCircleBelowPlayer(Vector3 playerWorldPos, int radius)
-    {
-        Vector2Int playerXY = new Vector2Int(Mathf.RoundToInt(playerWorldPos.x), Mathf.RoundToInt(playerWorldPos.y));
-        int playerZ = Mathf.FloorToInt(playerWorldPos.z);
-
-        int[] layerZs = new int[] { playerZ - 2, playerZ - 1, playerZ, playerZ + 1, playerZ + 2 };
-
-        HashSet<Vector3Int> currentlyHidden = new HashSet<Vector3Int>();
-
-        for (int dx = -radius; dx <= radius; dx++)
+        // ==== HIDDEN TILE LOGIC ====
+        if (tileHiddenSet != null)
         {
-            for (int dy = -radius; dy <= 0; dy++)
+            var currentlyHidden = tileHiddenSet.GetTilesToHide(playerTransform.position);
+
+            // Hide new tiles
+            foreach (var pos in currentlyHidden)
             {
-                if (dx * dx + dy * dy > radius * radius) continue;
-                Vector2Int offset = new Vector2Int(dx, dy);
-                Vector2Int tileXY = playerXY + offset;
-                foreach (int z in layerZs)
-                {
-                    Vector3Int pos = new Vector3Int(tileXY.x, tileXY.y, z);
-                    if (tileXY == playerXY && z == playerZ) continue;
-
-                    // Hide the tile by replacing it with the hideTileAsset
-                    // Only on the front and middleFront layers (adjust as needed)
-                    frontTilemap.SetTile(pos, hideTileAsset);
-                    frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
-                    frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
-
-                    middleFrontTilemap.SetTile(pos, hideTileAsset);
-                    middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
-                    middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
-
-                    currentlyHidden.Add(pos);
-                }
-            }
-        }
-
-        // Unhide any previously hidden tiles not in the current set
-        foreach (var pos in hiddenTiles)
-        {
-            if (!currentlyHidden.Contains(pos))
-            {
-                frontTilemap.SetTile(pos, null);
+                frontTilemap.SetTile(pos, hideTileAsset);
                 frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
                 frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
 
-                middleFrontTilemap.SetTile(pos, null);
+                middleFrontTilemap.SetTile(pos, hideTileAsset);
                 middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
                 middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
             }
+            // Unhide tiles no longer hidden
+            foreach (var pos in previouslyHidden)
+            {
+                if (!currentlyHidden.Contains(pos))
+                {
+                    frontTilemap.SetTile(pos, null);
+                    frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
+                    frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
+
+                    middleFrontTilemap.SetTile(pos, null);
+                    middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
+                    middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
+                }
+            }
+            previouslyHidden = currentlyHidden;
         }
 
-        hiddenTiles = currentlyHidden;
+        // ==== HILL CURVE LIVE PREVIEW ====
+        UpdateHillCurvePreview(playerZ);
     }
 
-    // --- ESSENTIAL: FOR PLAYER PATH CHECKING ---
+    /// <summary>
+    /// Updates the 'hillCurve' field to show a live preview of actual hills under and around the player.
+    /// This does NOT affect world generation; it's just for Inspector UI.
+    /// </summary>
+    private void UpdateHillCurvePreview(int zLayer)
+    {
+        if (playerTransform == null) return;
+        if (hillCurve == null) hillCurve = new AnimationCurve();
+
+        const int sampleCount = 100;     // More = smoother preview
+        const float viewWidth = 50f;     // How many units wide to preview (centered on player)
+        float playerX = playerTransform.position.x;
+        float startX = playerX - viewWidth * 0.5f;
+        float endX = playerX + viewWidth * 0.5f;
+
+        var keys = new Keyframe[sampleCount];
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float t = (float)i / (sampleCount - 1);
+            float x = Mathf.Lerp(startX, endX, t);
+            float y = GetHillValue(Mathf.RoundToInt(x), zLayer);
+            keys[i] = new Keyframe(t, y);
+        }
+        hillCurve.keys = keys;
+    }
+
+    /// <summary>
+    /// Returns all currently active tile positions for fog or other systems.
+    /// </summary>
+    public HashSet<Vector3Int> GetActiveTiles()
+    {
+        return activeTiles;
+    }
+
+    /// <summary>
+    /// Checks if a tile at the given position is currently hidden (according to the TileHiddenSet).
+    /// </summary>
     public bool IsTileHidden(Vector3Int pos)
     {
-        return hiddenTiles.Contains(pos);
+        if (tileHiddenSet == null) return false;
+        if (playerTransform == null) return false;
+
+        var currentlyHidden = tileHiddenSet.GetTilesToHide(playerTransform.position);
+        return currentlyHidden != null && currentlyHidden.Contains(pos);
     }
 }
