@@ -56,6 +56,9 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     private HashSet<Vector3Int> activeTiles = new HashSet<Vector3Int>();
     private HashSet<Vector3Int> previouslyHidden = new HashSet<Vector3Int>();
 
+    // --- Deleted tiles tracker ---
+    public static HashSet<Vector3Int> deletedTiles = new HashSet<Vector3Int>();
+
     void Awake()
     {
         if (string.IsNullOrEmpty(hillRandomSeed) || hillRandomSeed.ToLower() == "random")
@@ -131,7 +134,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         worldBottomY = SeededInt(rand, -600, -200, 16);
 
         randomHillCurve = new AnimationCurve();
-        // Make a long, smooth curve (not [-1,1], but [0,1] or [0,3] etc)
         int numKeys = SeededInt(rand, 8, 20, 17);
         for (int i = 0; i < numKeys; i++)
         {
@@ -149,10 +151,8 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     {
         float layerOffset = Mathf.PerlinNoise(z * hillNoiseScale + perlinOffsetZ, curveShift * 0.29f) * 2f - 1f;
         float t = x * seedScale + curveShift + z * seedScale * 0.11f + layerOffset * hillRandomAmplitude * 2f;
-
-        // Use a long, non-repeating curve: scale/shift t to [0,1] input range
-        float tCurve = (t * 0.001f) + 0.5f; // shift so 0,0 is in middle, scale for slow change
-        tCurve = Mathf.Clamp01(tCurve); // Clamp so you don't sample outside the curve
+        float tCurve = (t * 0.001f) + 0.5f;
+        tCurve = Mathf.Clamp01(tCurve);
         float curveValue = randomHillCurve.Evaluate(tCurve) * seedAmplitude;
 
         float noiseValue = Mathf.PerlinNoise(x * hillNoiseScale + perlinOffsetX, z * hillNoiseScale + perlinOffsetZ);
@@ -220,6 +220,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
                 Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
 
+                // Always clear first
                 groundTilemap.SetTile(surfacePos, null);
                 groundTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
                 frontTilemap.SetTile(surfacePos, null);
@@ -231,32 +232,36 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
                 backTilemap.SetTile(surfacePos, null);
                 backTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
 
-                if (z == playerZ - 2)
+                // --- FIX: Only place if not deleted ---
+                if (!deletedTiles.Contains(surfacePos))
                 {
-                    frontTilemap.SetTile(surfacePos, grassTileAsset);
-                    frontTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
+                    if (z == playerZ - 2)
+                    {
+                        frontTilemap.SetTile(surfacePos, grassTileAsset);
+                        frontTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
+                    }
+                    else if (z == playerZ - 1)
+                    {
+                        middleFrontTilemap.SetTile(surfacePos, grassTileAsset);
+                        middleFrontTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
+                    }
+                    else if (z == playerZ)
+                    {
+                        groundTilemap.SetTile(surfacePos, grassTileAsset);
+                        groundTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
+                    }
+                    else if (z == playerZ + 1)
+                    {
+                        middleBackTilemap.SetTile(surfacePos, grassTileAsset);
+                        middleBackTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
+                    }
+                    else if (z == playerZ + 2)
+                    {
+                        backTilemap.SetTile(surfacePos, grassTileAsset);
+                        backTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
+                    }
+                    activeTiles.Add(surfacePos);
                 }
-                else if (z == playerZ - 1)
-                {
-                    middleFrontTilemap.SetTile(surfacePos, grassTileAsset);
-                    middleFrontTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                }
-                else if (z == playerZ)
-                {
-                    groundTilemap.SetTile(surfacePos, grassTileAsset);
-                    groundTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                }
-                else if (z == playerZ + 1)
-                {
-                    middleBackTilemap.SetTile(surfacePos, grassTileAsset);
-                    middleBackTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                }
-                else if (z == playerZ + 2)
-                {
-                    backTilemap.SetTile(surfacePos, grassTileAsset);
-                    backTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                }
-                activeTiles.Add(surfacePos);
 
                 for (int y = surfaceY - 1; y >= buildBottom; y--)
                 {
@@ -273,32 +278,36 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
                     backTilemap.SetTile(dirtPos, null);
                     backTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
 
-                    if (z == playerZ - 2)
+                    // --- FIX: Only place if not deleted ---
+                    if (!deletedTiles.Contains(dirtPos))
                     {
-                        frontTilemap.SetTile(dirtPos, groundTileAsset);
-                        frontTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
+                        if (z == playerZ - 2)
+                        {
+                            frontTilemap.SetTile(dirtPos, groundTileAsset);
+                            frontTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
+                        }
+                        else if (z == playerZ - 1)
+                        {
+                            middleFrontTilemap.SetTile(dirtPos, groundTileAsset);
+                            middleFrontTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
+                        }
+                        else if (z == playerZ)
+                        {
+                            groundTilemap.SetTile(dirtPos, groundTileAsset);
+                            groundTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
+                        }
+                        else if (z == playerZ + 1)
+                        {
+                            middleBackTilemap.SetTile(dirtPos, groundTileAsset);
+                            middleBackTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
+                        }
+                        else if (z == playerZ + 2)
+                        {
+                            backTilemap.SetTile(dirtPos, groundTileAsset);
+                            backTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
+                        }
+                        activeTiles.Add(dirtPos);
                     }
-                    else if (z == playerZ - 1)
-                    {
-                        middleFrontTilemap.SetTile(dirtPos, groundTileAsset);
-                        middleFrontTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                    }
-                    else if (z == playerZ)
-                    {
-                        groundTilemap.SetTile(dirtPos, groundTileAsset);
-                        groundTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                    }
-                    else if (z == playerZ + 1)
-                    {
-                        middleBackTilemap.SetTile(dirtPos, groundTileAsset);
-                        middleBackTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                    }
-                    else if (z == playerZ + 2)
-                    {
-                        backTilemap.SetTile(dirtPos, groundTileAsset);
-                        backTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                    }
-                    activeTiles.Add(dirtPos);
                 }
             }
         }
@@ -356,17 +365,13 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         UpdateHillCurvePreview(playerZ);
     }
 
-    /// <summary>
-    /// Updates the 'hillCurve' field to show a live preview of actual hills under and around the player.
-    /// This does NOT affect world generation; it's just for Inspector UI.
-    /// </summary>
     private void UpdateHillCurvePreview(int zLayer)
     {
         if (playerTransform == null) return;
         if (hillCurve == null) hillCurve = new AnimationCurve();
 
-        const int sampleCount = 100;     // More = smoother preview
-        const float viewWidth = 50f;     // How many units wide to preview (centered on player)
+        const int sampleCount = 100;
+        const float viewWidth = 50f;
         float playerX = playerTransform.position.x;
         float startX = playerX - viewWidth * 0.5f;
         float endX = playerX + viewWidth * 0.5f;
@@ -382,17 +387,11 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         hillCurve.keys = keys;
     }
 
-    /// <summary>
-    /// Returns all currently active tile positions for fog or other systems.
-    /// </summary>
     public HashSet<Vector3Int> GetActiveTiles()
     {
         return activeTiles;
     }
 
-    /// <summary>
-    /// Checks if a tile at the given position is currently hidden (according to the TileHiddenSet).
-    /// </summary>
     public bool IsTileHidden(Vector3Int pos)
     {
         if (tileHiddenSet == null) return false;

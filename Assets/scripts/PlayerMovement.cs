@@ -95,9 +95,9 @@ public class PlayerMovement : MonoBehaviour
         {
             animatorController.UpdateAnimator(hValue, isRunning, isGrounded);
 
-            if (Input.GetMouseButtonDown(0))
+            if (Input.GetMouseButtonDown(1)) // Right mouse button pressed
                 animatorController.SetAttacking(true);
-            else if (Input.GetMouseButtonUp(0))
+            else if (Input.GetMouseButtonUp(1)) // Right mouse button released
                 animatorController.SetAttacking(false);
         }
     }
