@@ -4,6 +4,8 @@ public class isgrounded : MonoBehaviour
 {
     public bool grounded = false;
 
+    [SerializeField] private PlayerMovement playerMovement; // Assign in inspector
+
     private BoxCollider2D boxCollider;
 
     void Start()
@@ -21,5 +23,11 @@ public class isgrounded : MonoBehaviour
         int touching = boxCollider.Overlap(filter, results);
 
         grounded = touching > 0;
+
+        // Update PlayerMovement's isGrounded variable if assigned
+        if (playerMovement != null)
+        {
+            playerMovement.isGrounded = grounded;
+        }
     }
 }

@@ -1,139 +1,64 @@
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
-/// <summary>
-/// Handles player movement, jump logic, and checks for walls to disable movement in blocked directions.
-/// Prevents Z movement if a middle back tile or a debug ground tile is in the way.
-/// Allows setting which tilemap should be used as the "middle back" tilemap.
-/// </summary>
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Movement")]
     [SerializeField] private float speed = 10f;
-    [SerializeField] private float jumpSpeed = 12f;
-    [SerializeField] private float maxJumpTime = 0.35f;
-
-    [Header("References")]
+    [SerializeField] private float jumpForce = 12f;
     [SerializeField] private Rigidbody2D player;
-    [SerializeField] private Tilemap groundTilemap;
-    [SerializeField] private Tilemap middleFrontTilemap;
-    [SerializeField] private Tilemap middleBackTilemap; // You can now set this in the inspector!
-    [SerializeField] private Tilemap debugGroundTilemap;
     [SerializeField] private PlayerAnimatorController animatorController;
-    [SerializeField] private isgrounded groundChecker; // Your grounded script!
 
-    [Header("Jump State")]
-    [SerializeField] private bool isJumping = false;
-    [SerializeField] private float jumpTimeCounter = 0f;
+    [HideInInspector] public bool isGrounded = false; // Set externally
+
+    // Internal state for movement
+    private float hInput = 0f;
+    private float vInput = 0f;
 
     void Awake()
     {
         if (!player) player = GetComponent<Rigidbody2D>();
         if (!animatorController) animatorController = GetComponent<PlayerAnimatorController>();
-        if (!groundChecker) groundChecker = GetComponent<isgrounded>();
     }
 
     void Update()
     {
-        bool isGrounded = groundChecker != null ? groundChecker.grounded : IsGrounded();
+        // Get input in Update
+        hInput = Input.GetAxisRaw("Horizontal");
+        vInput = Input.GetAxisRaw("Vertical");
 
-        // If grounded, set rotation back to zero
-        if (isGrounded)
+        // Jump (physics applied in FixedUpdate)
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
-            transform.rotation = Quaternion.identity;
+            player.linearVelocity = new Vector2(player.linearVelocity.x, jumpForce);
         }
 
-        // Set animator parameter
-        if (animatorController != null && animatorController.anim != null)
-        {
-            animatorController.anim.SetBool("isGrounded", isGrounded);
-        }
-
-        // Movement XZ with wall checks
-        float moveX = 0f;
-        float moveZ = 0f;
-        float hValue = Input.GetAxisRaw("Horizontal");
-        float vValue = Input.GetAxisRaw("Vertical");
-
-        if (hValue > 0 && !IsWall(Vector3.right))
-            moveX = speed * Time.deltaTime;
-        if (hValue < 0 && !IsWall(Vector3.left))
-            moveX = -speed * Time.deltaTime;
-
-        // Z movement is prevented if a middleBack tile or debug ground tile is in the way
-        if (vValue > 0 && !IsWall(Vector3.forward) && !IsMiddleBackOrDebugInWay(Vector3.forward))
-            moveZ = speed * Time.deltaTime;
-        if (vValue < 0 && !IsWall(Vector3.back) && !IsMiddleBackOrDebugInWay(Vector3.back))
-            moveZ = -speed * Time.deltaTime;
-
-        transform.position += new Vector3(moveX, 0f, moveZ);
-
-        // Jump Logic
-        if (isGrounded && Input.GetKeyDown(KeyCode.Space) && !isJumping)
-        {
-            isJumping = true;
-            jumpTimeCounter = maxJumpTime;
-            player.linearVelocity = new Vector2(player.linearVelocity.x, jumpSpeed);
-        }
-        if (isJumping && Input.GetKey(KeyCode.Space) && jumpTimeCounter > 0)
-        {
-            player.linearVelocity = new Vector2(player.linearVelocity.x, jumpSpeed);
-            jumpTimeCounter -= Time.deltaTime;
-        }
-        if (Input.GetKeyUp(KeyCode.Space) || jumpTimeCounter <= 0)
-        {
-            isJumping = false;
-        }
-        if (isGrounded && !Input.GetKey(KeyCode.Space))
-        {
-            isJumping = false;
-        }
-
-        // Animator other logic
-        bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        // Animation
         if (animatorController != null)
-        {
-            animatorController.UpdateAnimator(hValue, isRunning, isGrounded);
-
-            if (Input.GetMouseButtonDown(1)) // Right mouse button pressed
-                animatorController.SetAttacking(true);
-            else if (Input.GetMouseButtonUp(1)) // Right mouse button released
-                animatorController.SetAttacking(false);
-        }
+            animatorController.UpdateAnimator(hInput, false, isGrounded);
     }
 
-    // Checks for any world tile (ground, middleFront, middleBack) as a wall
-    bool IsWall(Vector3 direction)
+    void FixedUpdate()
     {
-        Vector3 checkPos = transform.position + direction;
-        int zLayer = Mathf.RoundToInt(checkPos.z);
-        Vector3Int cell = groundTilemap.WorldToCell(new Vector3(checkPos.x, checkPos.y, zLayer));
-        bool blocked = groundTilemap.GetTile(cell) != null ||
-                       (middleBackTilemap != null && middleBackTilemap.GetTile(cell) != null) ||
-                       (middleFrontTilemap != null && middleFrontTilemap.GetTile(cell) != null);
-        return blocked;
-    }
+        // X movement (split into forward and backward)
+        float moveXF = 0f; // X Forward (right)
+        float moveXB = 0f; // X Backward (left)
 
-    // Prevent Z movement if middleBack or debug ground is in the way
-    bool IsMiddleBackOrDebugInWay(Vector3 direction)
-    {
-        Vector3 checkPos = transform.position + direction;
-        int zLayer = Mathf.RoundToInt(checkPos.z);
-        Vector3Int cell = groundTilemap.WorldToCell(new Vector3(checkPos.x, checkPos.y, zLayer));
-        bool blocked = false;
+        if (hInput > 0)
+            moveXF = hInput * speed * Time.fixedDeltaTime;
+        if (hInput < 0)
+            moveXB = hInput * speed * Time.fixedDeltaTime;
 
-        if (middleBackTilemap != null && middleBackTilemap.GetTile(cell) != null)
-            blocked = true;
+        // Move X forward (right) via Rigidbody2D
+        if (moveXF > 0)
+            player.MovePosition(player.position + new Vector2(moveXF, 0f));
 
-        if (debugGroundTilemap != null && debugGroundTilemap.GetTile(cell) != null)
-            blocked = true;
+        // Move X backward (left) via Rigidbody2D
+        if (moveXB < 0)
+            player.MovePosition(player.position + new Vector2(moveXB, 0f));
 
-        return blocked;
-    }
-
-    bool IsGrounded()
-    {
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.1f);
-        return hit.collider != null;
+        // Z movement: move by +0.4 when pressing "W", -0.4 when pressing "S"
+        if (Input.GetKeyDown(KeyCode.W))
+            transform.position += new Vector3(0f, 0f, 0.1f);
+        if (Input.GetKeyDown(KeyCode.S))
+            transform.position += new Vector3(0f, 0f, -0.1f);
     }
 }

@@ -2,26 +2,28 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.Collections.Generic;
 
-/// <summary>
-/// Overlays fog tiles over every active tile in the procedural world
-/// at all specified "back" layers, except for the tile at the player's X position.
-/// </summary>
-public class GroundFogController : MonoBehaviour
+[System.Serializable]
+public class FogLayerSettings
 {
-    [Header("Target Tilemap (the one to overlay)")]
+    public string name = "Fog Layer";
+    [Header("Target (for overlay reference only)")]
     public Tilemap targetTilemap;
-
-    [Header("Fog")]
+    [Header("Fog Output")]
     public Tilemap fogTilemap;
     public TileBase fogTile;
+    [Header("Layering and Appearance")]
+    public Color fogColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
 
-    [Header("Fog Layers")]
-    // Which Z offsets from player Z are "back" layers?
-    public int[] backLayerZOffsets = new int[] { 2, -2 };
+    [Header("Fog Logic")]
+    public bool hideIfNextToAir = true; // Toggle: should this layer check for adjacent air
+    [Tooltip("The Z offset relative to the player's current Z. 0 = player Z, 1 = in front, -1 = behind, etc.")]
+    public int fogZOffset = 0; // Offset relative to player Z
+}
 
-    [Header("Sorting/Rendering")]
-    public string fogSortingLayer = "Fog";
-    public int fogSortingOrder = 0;
+public class GroundFogController : MonoBehaviour
+{
+    [Header("Fog Layers - Each with its own tilemap, color, and tile")]
+    public FogLayerSettings[] fogLayers;
 
     [Header("Player Reference")]
     public Transform player;
@@ -29,47 +31,97 @@ public class GroundFogController : MonoBehaviour
     [Header("Procedural World Reference")]
     public TileInfiniteCameraSpawner worldSpawner;
 
+    [Header("Tile Hidden Set Reference")]
+    public TileHiddenSet tileHiddenSet; // Reference to your TileHiddenSet script
+
+    [Header("Camera Reference")]
+    public Camera mainCamera;
+
+    [Header("Camera Buffer (tiles)")]
+    public int cameraBuffer = 5;
+
+    // Cache for neighbor offsets (8 directions)
+    private static readonly Vector3Int[] neighborOffsets = new Vector3Int[]
+    {
+        new Vector3Int(-1, -1, 0), new Vector3Int(0, -1, 0), new Vector3Int(1, -1, 0),
+        new Vector3Int(-1, 0, 0),                      new Vector3Int(1, 0, 0),
+        new Vector3Int(-1, 1, 0),  new Vector3Int(0, 1, 0),  new Vector3Int(1, 1, 0)
+    };
+
     void Start()
     {
-        var fogTilemapRenderer = fogTilemap.GetComponent<TilemapRenderer>();
-        if (fogTilemapRenderer != null)
+        // Ensure all fog tilemaps have colliders off for visual effect
+        foreach (var layer in fogLayers)
         {
-            fogTilemapRenderer.sortingLayerName = fogSortingLayer;
-            fogTilemapRenderer.sortingOrder = fogSortingOrder;
-            var pos = fogTilemapRenderer.transform.position;
-            fogTilemapRenderer.transform.position = new Vector3(pos.x, pos.y, 0);
+            if (layer.fogTilemap == null) continue;
+            var collider = layer.fogTilemap.GetComponent<TilemapCollider2D>();
+            if (collider != null)
+                collider.enabled = false;
         }
-
-        var collider = fogTilemap.GetComponent<TilemapCollider2D>();
-        if (collider != null)
-            collider.enabled = false;
     }
 
     void Update()
     {
-        if (targetTilemap == null || fogTilemap == null || fogTile == null || player == null || worldSpawner == null)
+        if (player == null || worldSpawner == null || fogLayers == null || tileHiddenSet == null || mainCamera == null)
             return;
 
-        fogTilemap.ClearAllTiles();
-
         int playerZ = Mathf.RoundToInt(player.position.z);
-        int playerX = Mathf.RoundToInt(player.position.x);
 
-        // Calculate all Z layers to overlay fog
-        HashSet<int> fogZs = new HashSet<int>();
-        foreach (var offset in backLayerZOffsets)
-            fogZs.Add(playerZ + offset);
+        // Get camera bounds in world coordinates
+        Vector3 camMin = mainCamera.ViewportToWorldPoint(new Vector3(0, 0, mainCamera.nearClipPlane));
+        Vector3 camMax = mainCamera.ViewportToWorldPoint(new Vector3(1, 1, mainCamera.nearClipPlane));
 
-        // Get all active tiles from the worldSpawner
+        // Convert to tile coordinates, expanding by buffer
+        int minX = Mathf.FloorToInt(camMin.x) - cameraBuffer;
+        int maxX = Mathf.CeilToInt(camMax.x) + cameraBuffer;
+        int minY = Mathf.FloorToInt(camMin.y) - cameraBuffer;
+        int maxY = Mathf.CeilToInt(camMax.y) + cameraBuffer;
+
+        // Use references only once
         HashSet<Vector3Int> activeTiles = worldSpawner.GetActiveTiles();
+        HashSet<Vector3Int> toHide = tileHiddenSet.GetTilesToHide(player.position);
 
-        foreach (var tile in activeTiles)
+        foreach (var layer in fogLayers)
         {
-            if (fogZs.Contains(tile.z) && tile.x != playerX)
+            if (layer.fogTilemap == null || layer.fogTile == null)
+                continue;
+
+            layer.fogTilemap.ClearAllTiles();
+            layer.fogTilemap.color = layer.fogColor;
+
+            int fogLayerZ = playerZ + layer.fogZOffset;
+
+            foreach (var tile in activeTiles)
             {
-                Vector3Int fogPos = new Vector3Int(tile.x, tile.y, tile.z);
-                fogTilemap.SetTile(fogPos, fogTile);
-                fogTilemap.SetColliderType(fogPos, Tile.ColliderType.None);
+                if (tile.z != fogLayerZ ||
+                    tile.x < minX || tile.x > maxX ||
+                    tile.y < minY || tile.y > maxY)
+                    continue;
+
+                // Skip if this tile should be hidden (from the hide bubble)
+                if (toHide.Contains(tile))
+                    continue;
+
+                // Per-layer: Only hide if next to air if the option is enabled, ON THIS LAYER'S Z
+                if (layer.hideIfNextToAir)
+                {
+                    bool adjacentToAir = false;
+                    foreach (var offset in neighborOffsets)
+                    {
+                        Vector3Int neighborPos = new Vector3Int(tile.x + offset.x, tile.y + offset.y, fogLayerZ); // only this z!
+                        TileType neighborType = worldSpawner.GetTileTypeForFog(neighborPos, TileType.Dirt);
+                        if (neighborType == TileType.Air)
+                        {
+                            adjacentToAir = true;
+                            break;
+                        }
+                    }
+                    if (adjacentToAir)
+                        continue;
+                }
+
+                layer.fogTilemap.SetTile(tile, layer.fogTile);
+                layer.fogTilemap.SetColliderType(tile, Tile.ColliderType.None);
             }
         }
     }

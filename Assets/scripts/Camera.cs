@@ -2,12 +2,12 @@ using UnityEngine;
 
 public class camera : MonoBehaviour
 {
-    [SerializeField] private float offsetDistance = 2f;  // How far ahead/behind the camera moves
+    [SerializeField] private float offsetDistance = -2f;  // How far ahead/behind the camera moves
     [SerializeField] private float smoothSpeed = 5f;     // Camera follow speed
     [SerializeField] private float deadZone = 0.05f;     // Ignore tiny velocity to avoid jitter
     [SerializeField] private float zoomSpeed = 5f;       // How fast the zoom changes
     [SerializeField] private float minZoom = 5f;         // Minimum orthographic size (zoomed in)
-    [SerializeField] private float maxZoom = 20f;        // Maximum orthographic size (zoomed out)
+    [SerializeField] private float maxZoom = 7f;        // Maximum orthographic size (zoomed out)
     [SerializeField] private float zOffset = -5f;        // Camera stays 5 units behind player
 
     void Start()

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7661510112619160213}
   - component: {fileID: 1670558756145432618}
   - component: {fileID: -1889010071151409067}
+  - component: {fileID: 8878751874549532331}
   m_Layer: 0
   m_Name: bullet 1
   m_TagString: Untagged
@@ -102,3 +103,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   floatAmplitude: 0.3
   floatFrequency: 1.2
+--- !u!114 &8878751874549532331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3560360957326050748}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c416a6218ef57e3458a3748c4fc04b0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 0}
+  maxDistanceX: 30
+  maxDistanceY: 20
+  destroyAfterZSeconds: 300
+  zThreshold: 6

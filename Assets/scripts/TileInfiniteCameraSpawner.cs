@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
@@ -59,6 +60,12 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     // --- Deleted tiles tracker ---
     public static HashSet<Vector3Int> deletedTiles = new HashSet<Vector3Int>();
 
+    // --- Chunked archive ---
+    private ChunkedWorldArchive worldArchive;
+    private const int ChunkSize = 16;
+    private const int ChunksVisible = 3; // one left, center, one right
+    private const int ChunksGenerated = 6; // chunks kept loaded left/right of player
+
     void Awake()
     {
         if (string.IsNullOrEmpty(hillRandomSeed) || hillRandomSeed.ToLower() == "random")
@@ -67,6 +74,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         }
         usedSeedString = hillRandomSeed;
         ApplySeedRandomization();
+        worldArchive = new ChunkedWorldArchive(usedSeedString);
     }
 
     void OnValidate()
@@ -109,6 +117,13 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         return rand.Next(min, max);
     }
 
+    private void Start()
+    {
+        Debug.Log($"Hill Value at 0, 0: {GetHillValue(0, 0)}");
+        Debug.Log($"Hill Value at 10, 10: {GetHillValue(10, 10)}");
+        Debug.Log($"Hill Value at 20, 20: {GetHillValue(20, 20)}");
+    }
+
     void ApplySeedRandomization()
     {
         int hash = HashSeed(usedSeedString);
@@ -116,9 +131,9 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
         System.Random rand = new System.Random(hash);
 
+        // All params affect curve
         seedScale = SeededValue(rand, 0.05f, 0.2f, 1);
         seedAmplitude = SeededValue(rand, 0.6f, 3.0f, 2);
-        // repeatRange = SeededValue(rand, 8f, 28f, 3); // NOT USED
         hillHeight = SeededValue(rand, 3f, 15f, 4);
         hillCurveRandomJitter = SeededValue(rand, 0.08f, 0.7f, 5);
         hillRandomAmplitude = SeededValue(rand, 0.05f, 0.9f, 6);
@@ -135,14 +150,32 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
         randomHillCurve = new AnimationCurve();
         int numKeys = SeededInt(rand, 8, 20, 17);
+
+        // Generate curve with sharp cliffs and possible blockages
         for (int i = 0; i < numKeys; i++)
         {
             float t = Mathf.Lerp(0f, 1f, (float)i / (numKeys - 1));
+            // Add Z influence for canyon/closure
+            float canyonZ = Mathf.PerlinNoise(i * 0.23f + perlinOffsetZ, hash * 0.00001f) * 2f - 1f;
+            float canyonWall = Mathf.Abs(canyonZ * hillRandomAmplitude * 2f);
+            bool shouldBlock = canyonWall > 0.95f; // very steep wall if Perlin is high
+
             float baseValue = Mathf.Sin(t * Mathf.PI * SeededValue(rand, 1f, 2f, 20 + i));
+            // Apply cliff sharpness and random jitter, and canyon wall effect
             float value = baseValue * cliffSharpness + SeededValue(rand, -hillCurveRandomJitter, hillCurveRandomJitter, 100 + i);
+
+            // Sharper cliffs
+            value = Mathf.Sign(value) * Mathf.Pow(Mathf.Abs(value), cliffSharpness);
+
+            if (shouldBlock)
+            {
+                // Force a wall: high or low depending on random
+                value = (rand.NextDouble() > 0.5) ? cliffSharpness * 1.5f : -cliffSharpness * 1.5f;
+            }
+
             randomHillCurve.AddKey(new Keyframe(
                 t,
-                Mathf.Clamp(value, -cliffSharpness, cliffSharpness)
+                Mathf.Clamp(value, -cliffSharpness * 2f, cliffSharpness * 2f)
             ));
         }
     }
@@ -159,6 +192,19 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         float extraNoise = Mathf.PerlinNoise(x * hillNoiseScale * 0.2f + perlinBase, z * hillNoiseScale * 0.2f + perlinBase) - 0.5f;
         noiseValue = (noiseValue - 0.5f) * perlinStrength + extraNoise * (hillRandomAmplitude * 0.7f);
         noiseValue = Mathf.Sign(noiseValue) * Mathf.Pow(Mathf.Abs(noiseValue), cliffSharpness);
+
+        // --- New: Z-canyon closing logic ---
+        float canyonMask = Mathf.PerlinNoise(z * 0.12f + perlinOffsetZ * 0.5f, x * 0.015f + perlinOffsetX * 0.25f);
+        if (canyonMask > 0.92f)
+        {
+            // "Close off" canyon with a tall wall
+            return hillHeight * 2f;
+        }
+        else if (canyonMask < 0.08f)
+        {
+            // Deep drop/crater
+            return -hillHeight * 2f;
+        }
 
         float finalValue = curveValue + (noiseValue * hillRandomAmplitude) + hillVerticalShift;
         return finalValue;
@@ -185,147 +231,76 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         int maxY = Mathf.CeilToInt(camY + halfCamHeight) + buffer;
         int buildBottom = Mathf.Min(minY, playerY);
 
+        // --- Chunked world logic ---
+        int playerChunk = Mathf.FloorToInt((float)playerPos.x / ChunkSize);
+        int chunkGenLeft = playerChunk - ChunksGenerated;
+        int chunkGenRight = playerChunk + ChunksGenerated;
+        int chunkRenderLeft = playerChunk - (ChunksVisible / 2);
+        int chunkRenderRight = playerChunk + (ChunksVisible / 2);
+
+        int[] zs = new int[] { playerZ - 2, playerZ - 1, playerZ, playerZ + 1, playerZ + 2 };
+
+        // Remove out-of-range tiles (by chunk)
         List<Vector3Int> toRemove = new List<Vector3Int>();
         foreach (var tile in activeTiles)
         {
-            bool outOfView = (tile.x < minX || tile.x > maxX || tile.z < playerZ - 2 || tile.z > playerZ + 2);
+            int chunkX = Mathf.FloorToInt((float)tile.x / ChunkSize);
+            bool outOfChunk = chunkX < chunkRenderLeft || chunkX > chunkRenderRight;
+            bool outOfZ = tile.z < playerZ - 2 || tile.z > playerZ + 2;
             bool belowWorldBottom = tile.y < worldBottomY;
-            if (outOfView || belowWorldBottom)
+            if (outOfChunk || outOfZ || belowWorldBottom)
             {
                 groundTilemap.SetTile(tile, null);
-                groundTilemap.SetTransformMatrix(tile, Matrix4x4.identity);
                 frontTilemap.SetTile(tile, null);
-                frontTilemap.SetTransformMatrix(tile, Matrix4x4.identity);
                 middleFrontTilemap.SetTile(tile, null);
-                middleFrontTilemap.SetTransformMatrix(tile, Matrix4x4.identity);
                 middleBackTilemap.SetTile(tile, null);
-                middleBackTilemap.SetTransformMatrix(tile, Matrix4x4.identity);
                 backTilemap.SetTile(tile, null);
-                backTilemap.SetTransformMatrix(tile, Matrix4x4.identity);
                 toRemove.Add(tile);
             }
         }
         foreach (var tile in toRemove)
             activeTiles.Remove(tile);
 
-        int[] zs = new int[] { playerZ - 2, playerZ - 1, playerZ, playerZ + 1, playerZ + 2 };
-
+        // Generate & render chunks
         for (int z_i = 0; z_i < zs.Length; z_i++)
         {
             int z = zs[z_i];
-            for (int x = minX; x <= maxX; x++)
+            for (int chunkX = chunkGenLeft; chunkX <= chunkGenRight; chunkX++)
             {
-                float hillValue = GetHillValue(x, z);
-                int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
-
-                Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
-
-                // Always clear first
-                groundTilemap.SetTile(surfacePos, null);
-                groundTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                frontTilemap.SetTile(surfacePos, null);
-                frontTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                middleFrontTilemap.SetTile(surfacePos, null);
-                middleFrontTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                middleBackTilemap.SetTile(surfacePos, null);
-                middleBackTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                backTilemap.SetTile(surfacePos, null);
-                backTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-
-                // --- FIX: Only place if not deleted ---
-                if (!deletedTiles.Contains(surfacePos))
-                {
-                    if (z == playerZ - 2)
-                    {
-                        frontTilemap.SetTile(surfacePos, grassTileAsset);
-                        frontTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                    }
-                    else if (z == playerZ - 1)
-                    {
-                        middleFrontTilemap.SetTile(surfacePos, grassTileAsset);
-                        middleFrontTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                    }
-                    else if (z == playerZ)
-                    {
-                        groundTilemap.SetTile(surfacePos, grassTileAsset);
-                        groundTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                    }
-                    else if (z == playerZ + 1)
-                    {
-                        middleBackTilemap.SetTile(surfacePos, grassTileAsset);
-                        middleBackTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                    }
-                    else if (z == playerZ + 2)
-                    {
-                        backTilemap.SetTile(surfacePos, grassTileAsset);
-                        backTilemap.SetTransformMatrix(surfacePos, Matrix4x4.identity);
-                    }
-                    activeTiles.Add(surfacePos);
-                }
-
-                for (int y = surfaceY - 1; y >= buildBottom; y--)
-                {
-                    Vector3Int dirtPos = new Vector3Int(x, y, z);
-
-                    groundTilemap.SetTile(dirtPos, null);
-                    groundTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                    frontTilemap.SetTile(dirtPos, null);
-                    frontTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                    middleFrontTilemap.SetTile(dirtPos, null);
-                    middleFrontTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                    middleBackTilemap.SetTile(dirtPos, null);
-                    middleBackTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                    backTilemap.SetTile(dirtPos, null);
-                    backTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-
-                    // --- FIX: Only place if not deleted ---
-                    if (!deletedTiles.Contains(dirtPos))
-                    {
-                        if (z == playerZ - 2)
-                        {
-                            frontTilemap.SetTile(dirtPos, groundTileAsset);
-                            frontTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                        }
-                        else if (z == playerZ - 1)
-                        {
-                            middleFrontTilemap.SetTile(dirtPos, groundTileAsset);
-                            middleFrontTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                        }
-                        else if (z == playerZ)
-                        {
-                            groundTilemap.SetTile(dirtPos, groundTileAsset);
-                            groundTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                        }
-                        else if (z == playerZ + 1)
-                        {
-                            middleBackTilemap.SetTile(dirtPos, groundTileAsset);
-                            middleBackTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                        }
-                        else if (z == playerZ + 2)
-                        {
-                            backTilemap.SetTile(dirtPos, groundTileAsset);
-                            backTilemap.SetTransformMatrix(dirtPos, Matrix4x4.identity);
-                        }
-                        activeTiles.Add(dirtPos);
-                    }
-                }
+                bool render = chunkX >= chunkRenderLeft && chunkX <= chunkRenderRight;
+                SpawnOrLoadChunk(chunkX, z, buildBottom, maxY, playerZ, render);
             }
         }
 
+        // --- Unload distant chunks to keep memory usage low ---
+        worldArchive.UnloadDistantChunks(playerPos);
+
+        // --- Collider setup: only groundTilemap gets colliders ---
         foreach (var tile in activeTiles)
         {
-            if (tile.z == playerZ)
-            {
+            // Set colliders for each tilemap according to tile.z
+            if (groundTilemap != null && tile.z == playerZ)
                 groundTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
-            }
-            else
-            {
+            else if (middleFrontTilemap != null && tile.z == playerZ - 1)
+                middleFrontTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
+            else if (middleBackTilemap != null && tile.z == playerZ + 1)
+                middleBackTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
+            else if (frontTilemap != null && tile.z == playerZ - 2)
+                frontTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
+            else if (backTilemap != null && tile.z == playerZ + 2)
+                backTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
+
+            // Optionally, clear colliders on other tilemaps for this tile if you want to ensure no stray colliders:
+            if (groundTilemap != null && tile.z != playerZ)
                 groundTilemap.SetColliderType(tile, Tile.ColliderType.None);
-            }
-            middleFrontTilemap.SetColliderType(tile, Tile.ColliderType.None);
-            middleBackTilemap.SetColliderType(tile, Tile.ColliderType.None);
-            frontTilemap.SetColliderType(tile, Tile.ColliderType.None);
-            backTilemap.SetColliderType(tile, Tile.ColliderType.None);
+            if (middleFrontTilemap != null && tile.z != playerZ - 1)
+                middleFrontTilemap.SetColliderType(tile, Tile.ColliderType.None);
+            if (middleBackTilemap != null && tile.z != playerZ + 1)
+                middleBackTilemap.SetColliderType(tile, Tile.ColliderType.None);
+            if (frontTilemap != null && tile.z != playerZ - 2)
+                frontTilemap.SetColliderType(tile, Tile.ColliderType.None);
+            if (backTilemap != null && tile.z != playerZ + 2)
+                backTilemap.SetColliderType(tile, Tile.ColliderType.None);
         }
 
         // ==== HIDDEN TILE LOGIC ====
@@ -337,11 +312,8 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             foreach (var pos in currentlyHidden)
             {
                 frontTilemap.SetTile(pos, hideTileAsset);
-                frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
-                frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
-
                 middleFrontTilemap.SetTile(pos, hideTileAsset);
-                middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
+                frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
                 middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
             }
             // Unhide tiles no longer hidden
@@ -350,11 +322,8 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
                 if (!currentlyHidden.Contains(pos))
                 {
                     frontTilemap.SetTile(pos, null);
-                    frontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
-                    frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
-
                     middleFrontTilemap.SetTile(pos, null);
-                    middleFrontTilemap.SetTransformMatrix(pos, Matrix4x4.identity);
+                    frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
                     middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
                 }
             }
@@ -363,6 +332,85 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
         // ==== HILL CURVE LIVE PREVIEW ====
         UpdateHillCurvePreview(playerZ);
+    }
+
+    // Generate or load a chunk (archive-aware)
+    private void SpawnOrLoadChunk(int chunkX, int z, int buildBottom, int maxY, int playerZ, bool render)
+    {
+        int startX = chunkX * ChunkSize;
+        int endX = startX + ChunkSize - 1;
+
+        for (int x = startX; x <= endX; x++)
+        {
+            float hillValue = GetHillValue(x, z);
+            int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
+
+            Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
+            TileType tileType = GetTileType(surfacePos, TileType.Grass, true);
+
+            if (render && tileType != TileType.Air && !deletedTiles.Contains(surfacePos))
+            {
+                SetTileForZ(surfacePos, z, playerZ, tileType == TileType.Grass ? grassTileAsset : groundTileAsset);
+                activeTiles.Add(surfacePos);
+            }
+
+            for (int y = surfaceY - 1; y >= buildBottom; y--)
+            {
+                Vector3Int dirtPos = new Vector3Int(x, y, z);
+                TileType dirtType = GetTileType(dirtPos, TileType.Dirt, false);
+
+                if (render && dirtType != TileType.Air && !deletedTiles.Contains(dirtPos))
+                {
+                    SetTileForZ(dirtPos, z, playerZ, groundTileAsset);
+                    activeTiles.Add(dirtPos);
+                }
+            }
+        }
+    }
+    public TileType GetTileTypeForFog(Vector3Int pos, TileType fallback)
+    {
+        TileData tileData = worldArchive.TryGetTile(pos);
+        if (tileData != null)
+            return tileData.type;
+        // Procedural fallback (optional, can be improved for caves etc.)
+        float hillValue = GetHillValue(pos.x, pos.z);
+        int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
+        if (pos.y > surfaceY)
+            return TileType.Air;
+        if (pos.y == surfaceY)
+            return TileType.Grass;
+        return TileType.Dirt;
+    }
+
+    // Check archive for tile type, else use fallback (procedural)
+    private TileType GetTileType(Vector3Int pos, TileType fallback, bool isSurface)
+    {
+        TileData tileData = worldArchive.TryGetTile(pos);
+        if (tileData != null)
+            return tileData.type;
+        // procedural fallback
+        return fallback;
+    }
+
+    // Helper for setting tile in the correct tilemap based on z
+    private void SetTileForZ(Vector3Int pos, int z, int playerZ, TileBase tile)
+    {
+        groundTilemap.SetTile(pos, null);
+        frontTilemap.SetTile(pos, null);
+        middleFrontTilemap.SetTile(pos, null);
+        middleBackTilemap.SetTile(pos, null);
+        backTilemap.SetTile(pos, null);
+
+        if (z == playerZ - 2)
+            frontTilemap.SetTile(pos, tile);
+        else if (z == playerZ - 1)
+            middleFrontTilemap.SetTile(pos, tile);
+        else if (z == playerZ)
+            groundTilemap.SetTile(pos, tile);
+        else if (z == playerZ + 1)
+            middleBackTilemap.SetTile(pos, tile);
+        else if (z == playerZ + 2)
+            backTilemap.SetTile(pos, tile);
     }
 
     private void UpdateHillCurvePreview(int zLayer)
@@ -399,5 +447,25 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
         var currentlyHidden = tileHiddenSet.GetTilesToHide(playerTransform.position);
         return currentlyHidden != null && currentlyHidden.Contains(pos);
+    }
+
+    // Player modifies a tile (e.g. digging/building)
+    public void ModifyTile(Vector3Int pos, TileType type)
+    {
+        worldArchive.SetTile(pos, new TileData { type = type });
+    }
+
+    // Player deletes a tile (removes from both world and archive)
+    public void DeleteTile(Vector3Int pos)
+    {
+        deletedTiles.Add(pos);
+        worldArchive.RemoveTile(pos);
+    }
+
+    // Manual save, e.g. call from UI or gameplay
+    public void SaveGame()
+    {
+        if (worldArchive != null)
+            worldArchive.SaveAll();
     }
 }
