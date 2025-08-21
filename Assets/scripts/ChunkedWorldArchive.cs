@@ -3,28 +3,32 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
+//
+// ===============================
+// Chunked World Archive
+// ===============================
+// Handles saving/loading chunks to .json so tiles persist.
+//
 public class ChunkedWorldArchive
 {
     private const int ChunkSize = 16;
     private const int MaxChunksInMemory = 10;
-    private const int SaveEveryNModifications = 20; // Save after every 20 modifications
+    private const int SaveEveryNModifications = 20;
+    private const int UnloadBeyondChunks = 12; // safety bound for manual unload by distance
 
-    // Use LRU ordering for chunk keys
-    private Dictionary<(int x, int z), Chunk> loadedChunks = new Dictionary<(int x, int z), Chunk>();
-    private LinkedList<(int x, int z)> chunkOrder = new LinkedList<(int x, int z)>();
-    private HashSet<(int x, int z)> modifiedChunks = new HashSet<(int x, int z)>();
-    private string saveFolder;
+    private readonly Dictionary<(int x, int z), Chunk> loadedChunks = new Dictionary<(int x, int z), Chunk>();
+    private readonly LinkedList<(int x, int z)> chunkOrder = new LinkedList<(int x, int z)>();
+    private readonly HashSet<(int x, int z)> modifiedChunks = new HashSet<(int x, int z)>();
+
+    private readonly string saveFolder;
     private bool hasManualSave = false;
-
-    // Track number of modifications to trigger auto-save
     private int modificationCounter = 0;
 
     public ChunkedWorldArchive(string seed)
     {
-        // Save path: Application.persistentDataPath/mygame/WorldSaves/{seed}/chunks/
         string baseFolder = Path.Combine(Application.persistentDataPath, "mygame");
         saveFolder = Path.Combine(baseFolder, "WorldSaves", seed, "chunks");
-        Directory.CreateDirectory(saveFolder); // Create if not exists
+        Directory.CreateDirectory(saveFolder);
         Application.quitting += OnAppQuit;
     }
 
@@ -33,25 +37,12 @@ public class ChunkedWorldArchive
         var chunkCoords = WorldToChunk(pos);
         var chunk = LoadOrCreateChunk(chunkCoords.x, chunkCoords.z);
         chunk.SetTile(pos, data);
+
         TouchChunk(chunkCoords);
         modifiedChunks.Add(chunkCoords);
         modificationCounter++;
         EnsureChunkLimit();
         MaybeAutoSave();
-    }
-
-    public void RemoveTile(Vector3Int pos)
-    {
-        var chunkCoords = WorldToChunk(pos);
-        if (loadedChunks.TryGetValue(chunkCoords, out var chunk))
-        {
-            chunk.RemoveTile(pos);
-            TouchChunk(chunkCoords);
-            modifiedChunks.Add(chunkCoords);
-            modificationCounter++;
-            EnsureChunkLimit();
-            MaybeAutoSave();
-        }
     }
 
     public TileData TryGetTile(Vector3Int pos)
@@ -74,6 +65,18 @@ public class ChunkedWorldArchive
         return null;
     }
 
+    public void RemoveTile(Vector3Int pos)
+    {
+        var chunkCoords = WorldToChunk(pos);
+        var chunk = LoadOrCreateChunk(chunkCoords.x, chunkCoords.z);
+        if (chunk.RemoveTile(pos))
+        {
+            modifiedChunks.Add(chunkCoords);
+            modificationCounter++;
+            MaybeAutoSave();
+        }
+    }
+
     public void SaveAll()
     {
         foreach (var chunkCoord in modifiedChunks)
@@ -85,7 +88,33 @@ public class ChunkedWorldArchive
         }
         hasManualSave = true;
         modifiedChunks.Clear();
-        modificationCounter = 0; // Reset after save
+        modificationCounter = 0;
+    }
+
+    public void UnloadDistantChunks(Vector3Int playerWorldPos)
+    {
+        int playerChunkX = Mathf.FloorToInt((float)playerWorldPos.x / ChunkSize);
+
+        var toUnload = new List<(int x, int z)>();
+        foreach (var kvp in loadedChunks)
+        {
+            var (cx, cz) = kvp.Key;
+            if (Mathf.Abs(cx - playerChunkX) > UnloadBeyondChunks)
+            {
+                toUnload.Add(kvp.Key);
+            }
+        }
+
+        foreach (var coord in toUnload)
+        {
+            if (modifiedChunks.Contains(coord))
+            {
+                SaveChunkToDisk(coord.x, coord.z, loadedChunks[coord]);
+                modifiedChunks.Remove(coord);
+            }
+            loadedChunks.Remove(coord);
+            chunkOrder.Remove(coord);
+        }
     }
 
     private void MaybeAutoSave()
@@ -96,35 +125,8 @@ public class ChunkedWorldArchive
         }
     }
 
-    public void UnloadDistantChunks(Vector3Int playerPos)
-    {
-        int playerChunkX = Mathf.FloorToInt((float)playerPos.x / ChunkSize);
-        int playerChunkZ = Mathf.FloorToInt((float)playerPos.z / ChunkSize);
-        var toRemove = new List<(int x, int z)>();
-        foreach (var chunkCoord in loadedChunks.Keys)
-        {
-            int dx = Math.Abs(chunkCoord.x - playerChunkX);
-            int dz = Math.Abs(chunkCoord.z - playerChunkZ);
-            if (dx > 5 || dz > 5) // ~50 chunks in 2D ring
-            {
-                if (modifiedChunks.Contains(chunkCoord))
-                {
-                    SaveChunkToDisk(chunkCoord.x, chunkCoord.z, loadedChunks[chunkCoord]);
-                    modifiedChunks.Remove(chunkCoord);
-                }
-                toRemove.Add(chunkCoord);
-            }
-        }
-        foreach (var coord in toRemove)
-        {
-            loadedChunks.Remove(coord);
-            chunkOrder.Remove(coord);
-        }
-    }
-
     private void EnsureChunkLimit()
     {
-        // If too many loaded, remove least recently used
         while (loadedChunks.Count > MaxChunksInMemory)
         {
             var oldest = chunkOrder.First.Value;
@@ -140,17 +142,16 @@ public class ChunkedWorldArchive
 
     private void TouchChunk((int x, int z) chunkCoord)
     {
-        // Moves chunk to end of LRU list (most recently used)
         chunkOrder.Remove(chunkCoord);
         chunkOrder.AddLast(chunkCoord);
     }
 
     private (int x, int z) WorldToChunk(Vector3Int pos)
     {
-        return (Mathf.FloorToInt((float)pos.x / ChunkSize), Mathf.FloorToInt((float)pos.z / ChunkSize));
+        return (Mathf.FloorToInt((float)pos.x / ChunkSize),
+                Mathf.FloorToInt((float)pos.z / ChunkSize));
     }
 
-    // Serialization helpers
     private string ChunkPath(int x, int z)
         => Path.Combine(saveFolder, $"chunk_{x}_{z}.json");
 
@@ -177,9 +178,8 @@ public class ChunkedWorldArchive
     private void SaveChunkToDisk(int x, int z, Chunk chunk)
     {
         string path = ChunkPath(x, z);
-        if (chunk.tiles == null || chunk.tiles.Count == 0)
+        if (chunk.IsEmpty)
         {
-            // Delete chunk file if empty
             if (File.Exists(path))
                 File.Delete(path);
         }
@@ -195,54 +195,90 @@ public class ChunkedWorldArchive
         return JsonUtility.FromJson<Chunk>(File.ReadAllText(path));
     }
 
-    // On quit, delete save folder if no manual save
     private void OnAppQuit()
     {
         if (!hasManualSave)
         {
-            var grandParentDir = Directory.GetParent(Directory.GetParent(saveFolder).FullName).FullName;
-            if (Directory.Exists(grandParentDir))
-                Directory.Delete(grandParentDir, true);
+            // Delete entire seed folder if user never saved manually
+            var seedFolder = Directory.GetParent(saveFolder)?.FullName;
+            if (!string.IsNullOrEmpty(seedFolder) && Directory.Exists(seedFolder))
+            {
+                try
+                {
+                    Directory.Delete(seedFolder, true);
+                    Debug.Log($"[Archive] Deleted unsaved world at {seedFolder}");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[Archive] Failed to delete unsaved world: {e}");
+                }
+            }
+        }
+        else
+        {
+            SaveAll();
         }
     }
 }
 
-// Example chunk class (optimized)
 [Serializable]
-public class Chunk
+public class Chunk : ISerializationCallbackReceiver
 {
     public int chunkX, chunkZ;
 
-    // Use a dictionary for tile lookup
-    public Dictionary<string, TileData> tiles = new Dictionary<string, TileData>();
+    // Unity's JsonUtility can't serialize Dictionary directly.
+    // We'll store parallel lists for serialization and rebuild the dictionary at runtime.
+    [NonSerialized] private Dictionary<string, TileData> tiles = new Dictionary<string, TileData>();
+    public List<string> keys = new List<string>();
+    public List<TileData> values = new List<TileData>();
+
+    public bool IsEmpty => tiles == null || tiles.Count == 0;
 
     public Chunk(int x, int z) { chunkX = x; chunkZ = z; }
 
     public void SetTile(Vector3Int pos, TileData data)
     {
+        if (tiles == null) tiles = new Dictionary<string, TileData>();
         string key = GetKey(pos);
         tiles[key] = data;
     }
 
-    public void RemoveTile(Vector3Int pos)
-    {
-        string key = GetKey(pos);
-        tiles.Remove(key);
-    }
-
     public TileData TryGetTile(Vector3Int pos)
     {
-        string key = GetKey(pos);
-        return tiles.TryGetValue(key, out var data) ? data : null;
+        if (tiles == null) tiles = new Dictionary<string, TileData>();
+        tiles.TryGetValue(GetKey(pos), out var data);
+        return data;
+    }
+
+    public bool RemoveTile(Vector3Int pos)
+    {
+        if (tiles == null || tiles.Count == 0) return false;
+        return tiles.Remove(GetKey(pos));
     }
 
     private static string GetKey(Vector3Int pos) => $"{pos.x},{pos.y},{pos.z}";
-}
 
-[Serializable]
-public class TileDataEntry
-{
-    public int x, y, z;
-    public TileData data;
-    public TileDataEntry(Vector3Int pos, TileData data) { x = pos.x; y = pos.y; z = pos.z; this.data = data; }
+    // --- Serialization glue ---
+    public void OnBeforeSerialize()
+    {
+        keys.Clear();
+        values.Clear();
+        if (tiles == null) return;
+        foreach (var kv in tiles)
+        {
+            keys.Add(kv.Key);
+            values.Add(kv.Value);
+        }
+    }
+
+    public void OnAfterDeserialize()
+    {
+        tiles = new Dictionary<string, TileData>(keys.Count);
+        for (int i = 0; i < keys.Count; i++)
+        {
+            // values[i] can be null if file was corrupted; guard
+            if (!tiles.ContainsKey(keys[i]) && values[i] != null)
+                tiles.Add(keys[i], values[i]);
+        }
+    }
 }

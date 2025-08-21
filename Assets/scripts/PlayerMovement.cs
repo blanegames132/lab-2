@@ -1,17 +1,19 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerLeftRightMovement : MonoBehaviour
 {
-    [SerializeField] private float speed = 10f;
+    [SerializeField] private float leftSpeed = 10f;
+    [SerializeField] private float rightSpeed = 10f;
+    [SerializeField] private float leftRunSpeed = 16f;
+    [SerializeField] private float rightRunSpeed = 16f;
     [SerializeField] private float jumpForce = 12f;
     [SerializeField] private Rigidbody2D player;
     [SerializeField] private PlayerAnimatorController animatorController;
 
-    [HideInInspector] public bool isGrounded = false; // Set externally
+    [HideInInspector] public bool isGrounded = false; // Set externally by a ground check script
 
-    // Internal state for movement
     private float hInput = 0f;
-    private float vInput = 0f;
+    private bool isRunning = false;
 
     void Awake()
     {
@@ -21,44 +23,36 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // Get input in Update
-        hInput = Input.GetAxisRaw("Horizontal");
-        vInput = Input.GetAxisRaw("Vertical");
+        // Set hInput based on A/D keys
+        if (Input.GetKey(KeyCode.A))
+            hInput = -1f;
+        else if (Input.GetKey(KeyCode.D))
+            hInput = 1f;
+        else
+            hInput = 0f;
 
-        // Jump (physics applied in FixedUpdate)
+        // Check for running (Shift held)
+        isRunning = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && hInput != 0f;
+
+        // Jump if grounded and space is pressed
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             player.linearVelocity = new Vector2(player.linearVelocity.x, jumpForce);
         }
 
-        // Animation
+        // Animation and flip
         if (animatorController != null)
-            animatorController.UpdateAnimator(hInput, false, isGrounded);
+            animatorController.UpdateAnimator(hInput, isRunning, isGrounded);
     }
 
     void FixedUpdate()
     {
-        // X movement (split into forward and backward)
-        float moveXF = 0f; // X Forward (right)
-        float moveXB = 0f; // X Backward (left)
+        float speed;
+        if (isRunning)
+            speed = hInput < 0 ? leftRunSpeed : (hInput > 0 ? rightRunSpeed : 0f);
+        else
+            speed = hInput < 0 ? leftSpeed : (hInput > 0 ? rightSpeed : 0f);
 
-        if (hInput > 0)
-            moveXF = hInput * speed * Time.fixedDeltaTime;
-        if (hInput < 0)
-            moveXB = hInput * speed * Time.fixedDeltaTime;
-
-        // Move X forward (right) via Rigidbody2D
-        if (moveXF > 0)
-            player.MovePosition(player.position + new Vector2(moveXF, 0f));
-
-        // Move X backward (left) via Rigidbody2D
-        if (moveXB < 0)
-            player.MovePosition(player.position + new Vector2(moveXB, 0f));
-
-        // Z movement: move by +0.4 when pressing "W", -0.4 when pressing "S"
-        if (Input.GetKeyDown(KeyCode.W))
-            transform.position += new Vector3(0f, 0f, 0.1f);
-        if (Input.GetKeyDown(KeyCode.S))
-            transform.position += new Vector3(0f, 0f, -0.1f);
+        player.linearVelocity = new Vector2(hInput * speed, player.linearVelocity.y);
     }
 }

@@ -275,34 +275,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         // --- Unload distant chunks to keep memory usage low ---
         worldArchive.UnloadDistantChunks(playerPos);
 
-        // --- Collider setup: only groundTilemap gets colliders ---
-        foreach (var tile in activeTiles)
-        {
-            // Set colliders for each tilemap according to tile.z
-            if (groundTilemap != null && tile.z == playerZ)
-                groundTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
-            else if (middleFrontTilemap != null && tile.z == playerZ - 1)
-                middleFrontTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
-            else if (middleBackTilemap != null && tile.z == playerZ + 1)
-                middleBackTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
-            else if (frontTilemap != null && tile.z == playerZ - 2)
-                frontTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
-            else if (backTilemap != null && tile.z == playerZ + 2)
-                backTilemap.SetColliderType(tile, Tile.ColliderType.Grid);
-
-            // Optionally, clear colliders on other tilemaps for this tile if you want to ensure no stray colliders:
-            if (groundTilemap != null && tile.z != playerZ)
-                groundTilemap.SetColliderType(tile, Tile.ColliderType.None);
-            if (middleFrontTilemap != null && tile.z != playerZ - 1)
-                middleFrontTilemap.SetColliderType(tile, Tile.ColliderType.None);
-            if (middleBackTilemap != null && tile.z != playerZ + 1)
-                middleBackTilemap.SetColliderType(tile, Tile.ColliderType.None);
-            if (frontTilemap != null && tile.z != playerZ - 2)
-                frontTilemap.SetColliderType(tile, Tile.ColliderType.None);
-            if (backTilemap != null && tile.z != playerZ + 2)
-                backTilemap.SetColliderType(tile, Tile.ColliderType.None);
-        }
-
         // ==== HIDDEN TILE LOGIC ====
         if (tileHiddenSet != null)
         {
@@ -313,8 +285,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             {
                 frontTilemap.SetTile(pos, hideTileAsset);
                 middleFrontTilemap.SetTile(pos, hideTileAsset);
-                frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
-                middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
             }
             // Unhide tiles no longer hidden
             foreach (var pos in previouslyHidden)
@@ -323,8 +293,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
                 {
                     frontTilemap.SetTile(pos, null);
                     middleFrontTilemap.SetTile(pos, null);
-                    frontTilemap.SetColliderType(pos, Tile.ColliderType.None);
-                    middleFrontTilemap.SetColliderType(pos, Tile.ColliderType.None);
                 }
             }
             previouslyHidden = currentlyHidden;
@@ -367,6 +335,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             }
         }
     }
+
     public TileType GetTileTypeForFog(Vector3Int pos, TileType fallback)
     {
         TileData tileData = worldArchive.TryGetTile(pos);
@@ -382,14 +351,17 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         return TileType.Dirt;
     }
 
-    // Check archive for tile type, else use fallback (procedural)
+    // Check archive for tile type, else use fallback (procedural) — and persist once.
     private TileType GetTileType(Vector3Int pos, TileType fallback, bool isSurface)
     {
         TileData tileData = worldArchive.TryGetTile(pos);
         if (tileData != null)
             return tileData.type;
-        // procedural fallback
-        return fallback;
+
+        // --- first visit: lock in the procedural choice and save it ---
+        var chosen = fallback;
+        worldArchive.SetTile(pos, new TileData { type = chosen });
+        return chosen;
     }
 
     // Helper for setting tile in the correct tilemap based on z

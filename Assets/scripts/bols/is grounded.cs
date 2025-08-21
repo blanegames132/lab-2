@@ -4,7 +4,7 @@ public class isgrounded : MonoBehaviour
 {
     public bool grounded = false;
 
-    [SerializeField] private PlayerMovement playerMovement; // Assign in inspector
+    [SerializeField] private PlayerLeftRightMovement playerMovement; // Assign in inspector
 
     private BoxCollider2D boxCollider;
 
@@ -24,7 +24,7 @@ public class isgrounded : MonoBehaviour
 
         grounded = touching > 0;
 
-        // Update PlayerMovement's isGrounded variable if assigned
+        // Update PlayerLeftRightMovement's isGrounded variable if assigned
         if (playerMovement != null)
         {
             playerMovement.isGrounded = grounded;

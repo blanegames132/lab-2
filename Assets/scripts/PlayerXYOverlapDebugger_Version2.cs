@@ -10,7 +10,7 @@ public class PlayerTileBehindDebugger : MonoBehaviour
     public bool isBlocked;
 
     [Tooltip("How many tiles to search along the Z axis (positive and negative)")]
-    public int zSearchRange = 5;
+    public int zSearchRange = 1;
 
     void Awake()
     {
