@@ -3,16 +3,16 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 
 /// <summary>
-/// Always overlays fog 0.1 units in front of the selected tilemap,
+/// Always overlays fog 0.1 units in front of the back tilemap,
 /// no matter the tilemap's Z position or cell.z values.
-/// Fog overlays all active tiles in the selected tilemap.
+/// Fog overlays all active tiles in the back tilemap.
 /// </summary>
-public class FrontTilemapFogOverlay : MonoBehaviour
+public class BackTilemapFogOverlay : MonoBehaviour
 {
     [Header("References")]
-    public Tilemap frontTilemap;      // Tilemap to overlay fog on
-    public Tilemap fogTilemap;        // Tilemap for fog overlay (should match frontTilemap's grid)
-    public TileBase fogTile;          // Fog tile asset
+    public Tilemap backTilemap;
+    public Tilemap fogTilemap;
+    public TileBase fogTile;
     public TileInfiniteCameraSpawner worldSpawner;
     public TileHiddenSet tileHiddenSet;
     public Camera mainCamera;
@@ -43,18 +43,16 @@ public class FrontTilemapFogOverlay : MonoBehaviour
 
     void Update()
     {
-        if (frontTilemap == null || fogTilemap == null || fogTile == null ||
+        if (backTilemap == null || fogTilemap == null || fogTile == null ||
             worldSpawner == null || tileHiddenSet == null || mainCamera == null)
             return;
 
-        // Always set fogTilemap Z to frontTilemap Z + 0.1f (no matter what Z that is)
-        Vector3 frontPos = frontTilemap.transform.position;
+        Vector3 backPos = backTilemap.transform.position;
         Vector3 fogPos = fogTilemap.transform.position;
-        float desiredZ = frontPos.z + 0.1f;
+        float desiredZ = backPos.z + 0.1f;
         if (!Mathf.Approximately(fogPos.z, desiredZ))
             fogTilemap.transform.position = new Vector3(fogPos.x, fogPos.y, desiredZ);
 
-        // Camera bounds
         Vector3 camMin = mainCamera.ViewportToWorldPoint(new Vector3(0, 0, mainCamera.nearClipPlane));
         Vector3 camMax = mainCamera.ViewportToWorldPoint(new Vector3(1, 1, mainCamera.nearClipPlane));
         int minX = Mathf.FloorToInt(camMin.x) - cameraBuffer;
@@ -62,13 +60,12 @@ public class FrontTilemapFogOverlay : MonoBehaviour
         int minY = Mathf.FloorToInt(camMin.y) - cameraBuffer;
         int maxY = Mathf.CeilToInt(camMax.y) + cameraBuffer;
 
-        // Origin offset for perfect overlay
-        Vector3 srcOrigin = frontTilemap.layoutGrid.CellToWorld(Vector3Int.zero) + frontTilemap.transform.position;
+        Vector3 srcOrigin = backTilemap.layoutGrid.CellToWorld(Vector3Int.zero) + backTilemap.transform.position;
         Vector3 fogOrigin = fogTilemap.layoutGrid.CellToWorld(Vector3Int.zero) + fogTilemap.transform.position;
         Vector3 worldOffset = fogOrigin - srcOrigin;
 
-        HashSet<Vector3Int> activeTiles = worldSpawner.GetActiveTilesForTilemap(frontTilemap);
-        HashSet<Vector3Int> toHide = tileHiddenSet.GetTilesToHide(frontTilemap.transform.position);
+        HashSet<Vector3Int> activeTiles = worldSpawner.GetActiveTilesForTilemap(backTilemap);
+        HashSet<Vector3Int> toHide = tileHiddenSet.GetTilesToHide(backTilemap.transform.position);
 
         fogTilemap.ClearAllTiles();
         fogTilemap.color = fogColor;
@@ -77,13 +74,12 @@ public class FrontTilemapFogOverlay : MonoBehaviour
         {
             if (tile.x < minX || tile.x > maxX || tile.y < minY || tile.y > maxY)
                 continue;
-            if (frontTilemap.GetTile(tile) == null)
+            if (backTilemap.GetTile(tile) == null)
                 continue;
 
-            Vector3 worldPos = frontTilemap.CellToWorld(tile) + worldOffset;
+            Vector3 worldPos = backTilemap.CellToWorld(tile) + worldOffset;
             Vector3Int fogCell = fogTilemap.WorldToCell(worldPos);
 
-            // Hide logic (unchanged)
             if (enableHideLogic)
             {
                 if (toHide.Contains(tile)) continue;

@@ -1,31 +1,46 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// Spawns enemies in two bands (left/right) around the player, within a specific Z band.
+/// Despawns enemies when they leave the extended X range or Z band.
+/// </summary>
 public class EnemySpawner : MonoBehaviour
 {
+    [Header("References")]
     [SerializeField] private GameObject enemyPrefab;
-    [SerializeField] private Camera cam;
     [SerializeField] private TileInfiniteCameraSpawner spawner;
+    [SerializeField] private Transform playerTransform;
 
-    [Tooltip("Chance (0-1) to try spawn an enemy at edge per frame.")]
-    [Range(0, 1)]
-    public float spawnChancePerEdge = 0.05f;
+    [Header("Spawn Settings")]
+    [Range(0, 1)] public float spawnChance = 0.05f;
+    public int maxEnemies = 4;
 
-    [Tooltip("Maximum number of active enemies.")]
-    public int maxEnemies = 2;
+    [Header("Spawn Band (relative to player)")]
+    public float spawnZBand = 2f; // +/- Z band around player
+    public float spawnLeftMinX = -20f;
+    public float spawnLeftMaxX = -4f;
+    public float spawnRightMinX = 4f;
+    public float spawnRightMaxX = 20f;
 
-    private HashSet<Vector3Int> spawnedPositions = new HashSet<Vector3Int>();
+    [Header("Despawn Band (relative to player)")]
+    public float despawnLeftAbsX = -30f;
+    public float despawnLeftTimerX = -20f;
+    public float despawnRightTimerX = 20f;
+    public float despawnRightAbsX = 30f;
+    public float despawnZBand = 2f; // +/- Z band for despawn (absolute)
+    public float despawnTimer = 20f;
+
     private List<GameObject> activeEnemies = new List<GameObject>();
-
-    private Transform playerTransform;
 
     void Start()
     {
-        if (!cam) cam = Camera.main;
         if (!spawner) spawner = FindObjectOfType<TileInfiniteCameraSpawner>();
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-            playerTransform = player.transform;
+        if (!playerTransform)
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null) playerTransform = player.transform;
+        }
     }
 
     void Update()
@@ -33,49 +48,52 @@ public class EnemySpawner : MonoBehaviour
         RemoveNullEnemies();
 
         if (activeEnemies.Count >= maxEnemies) return;
-        if (Random.value > spawnChancePerEdge) return;
-        if (spawner == null || cam == null || enemyPrefab == null) return;
+        if (Random.value > spawnChance) return;
+        if (!spawner || !enemyPrefab || !playerTransform) return;
 
-        float halfWidth = cam.orthographicSize * cam.aspect;
-        float camX = cam.transform.position.x;
-
+        // Choose side: 0 = left, 1 = right
         bool spawnLeft = Random.value < 0.5f;
-        int x = Mathf.RoundToInt(spawnLeft ? camX - halfWidth : camX + halfWidth);
+        float px = playerTransform.position.x;
+        float pz = playerTransform.position.z;
 
-        int camZ = Mathf.RoundToInt(cam.transform.position.z);
-        int[] zs = new int[] { camZ - 2, camZ - 1, camZ, camZ + 1, camZ + 2 };
-        int z = zs[Random.Range(0, zs.Length)];
+        float x = spawnLeft
+            ? Random.Range(px + spawnLeftMinX, px + spawnLeftMaxX)
+            : Random.Range(px + spawnRightMinX, px + spawnRightMaxX);
 
-        int surfaceY = spawner.GetSurfaceY(x, z);
-        Vector3Int tilePos = new Vector3Int(x, surfaceY, z);
+        float z = Random.Range(pz - spawnZBand, pz + spawnZBand);
 
-        if (spawnedPositions.Contains(tilePos)) return;
+        int ix = Mathf.RoundToInt(x);
+        int iz = Mathf.RoundToInt(z);
 
-        Vector3 worldSpawn = new Vector3(x, surfaceY + 1.1f, z);
+        int surfaceY = spawner.GetSurfaceY(ix, iz);
+
+        Vector3 worldSpawn = new Vector3(ix, surfaceY + 1.1f, iz);
 
         GameObject enemy = Instantiate(enemyPrefab, worldSpawn, Quaternion.identity);
         activeEnemies.Add(enemy);
-        spawnedPositions.Add(tilePos);
 
-        // Attach DespawnScript for automatic despawn
+        // Attach despawn script with ALL required arguments
         DespawnScript ds = enemy.AddComponent<DespawnScript>();
-        ds.Initialize(this, cam, playerTransform);
+        ds.Initialize(
+            this,
+            playerTransform,
+            despawnLeftAbsX,
+            despawnLeftTimerX,
+            despawnRightTimerX,
+            despawnRightAbsX,
+            despawnZBand,
+            despawnTimer
+        );
     }
 
-    // Removes null enemies from the activeEnemies list
     void RemoveNullEnemies()
     {
         for (int i = activeEnemies.Count - 1; i >= 0; i--)
-        {
-            if (activeEnemies[i] == null)
-                activeEnemies.RemoveAt(i);
-        }
+            if (activeEnemies[i] == null) activeEnemies.RemoveAt(i);
     }
 
-    // Called by DespawnScript when an enemy should be despawned
-    public void DespawnEnemy(GameObject enemy, Vector3Int tilePos)
+    public void DespawnEnemy(GameObject enemy)
     {
-        spawnedPositions.Remove(tilePos);
         activeEnemies.Remove(enemy);
         Destroy(enemy);
     }

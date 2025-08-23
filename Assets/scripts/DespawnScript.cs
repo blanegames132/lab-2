@@ -1,46 +1,82 @@
 using UnityEngine;
 
 /// <summary>
-/// Attach this to each enemy. It despawns itself if off-screen or out of z-range.
+/// Despawns enemy if outside absolute X or Z points (immediate), or after a timer if within the despawn band.
 /// </summary>
 public class DespawnScript : MonoBehaviour
 {
     private EnemySpawner spawner;
-    private Camera cam;
     private Transform playerTransform;
-    private float yOffset = 1.1f;
 
-    public void Initialize(EnemySpawner spawner, Camera cam, Transform playerTransform)
+    // Inspector-editable despawn bands (relative to player)
+    public float despawnLeftAbsX = -30f;
+    public float despawnLeftTimerX = -20f;
+    public float despawnRightTimerX = 20f;
+    public float despawnRightAbsX = 30f;
+    public float despawnZBand = 2f;
+    public float despawnTimer = 20f;
+
+    private float timer = 0f;
+    private bool inTimerZone = false;
+
+    public void Initialize(
+        EnemySpawner spawner,
+        Transform playerTransform,
+        float despawnLeftAbsX,
+        float despawnLeftTimerX,
+        float despawnRightTimerX,
+        float despawnRightAbsX,
+        float despawnZBand,
+        float despawnTimer)
     {
         this.spawner = spawner;
-        this.cam = cam;
         this.playerTransform = playerTransform;
+        this.despawnLeftAbsX = despawnLeftAbsX;
+        this.despawnLeftTimerX = despawnLeftTimerX;
+        this.despawnRightTimerX = despawnRightTimerX;
+        this.despawnRightAbsX = despawnRightAbsX;
+        this.despawnZBand = despawnZBand;
+        this.despawnTimer = despawnTimer;
     }
 
     void Update()
     {
-        if (cam == null || playerTransform == null || spawner == null) return;
+        if (!playerTransform || !spawner) return;
 
-        float halfWidth = cam.orthographicSize * cam.aspect;
-        float camX = cam.transform.position.x;
-        float camLeft = camX - halfWidth;
-        float camRight = camX + halfWidth;
-        float playerZ = playerTransform.position.z;
+        float px = playerTransform.position.x;
+        float pz = playerTransform.position.z;
+        float ex = transform.position.x;
+        float ez = transform.position.z;
 
-        Vector3 pos = transform.position;
+        float relX = ex - px;
+        float relZ = ez - pz;
 
-        bool offScreen = pos.x < camLeft || pos.x > camRight;
-        bool zOutOfRange = pos.z < playerZ - 5f || pos.z > playerZ + 5f;
-
-        // Despawn if either off-screen or out of z-range
-        if (offScreen || zOutOfRange)
+        // ABSOLUTE DESPAWN: outside the outer X bounds or Z band
+        if (relX < despawnLeftAbsX || relX > despawnRightAbsX || Mathf.Abs(relZ) > despawnZBand)
         {
-            Vector3Int tilePos = new Vector3Int(
-                Mathf.RoundToInt(pos.x),
-                Mathf.RoundToInt(pos.y - yOffset),
-                Mathf.RoundToInt(pos.z)
-            );
-            spawner.DespawnEnemy(gameObject, tilePos);
+            spawner.DespawnEnemy(gameObject);
+            return;
+        }
+
+        // TIMER ZONE: if in between timer despawn points (on X)
+        if (relX >= despawnLeftTimerX && relX <= despawnRightTimerX)
+        {
+            inTimerZone = true;
+            timer += Time.deltaTime;
+            if (timer >= despawnTimer)
+            {
+                spawner.DespawnEnemy(gameObject);
+            }
+        }
+        else
+        {
+            // Not in timer zone, reset timer and despawn immediately
+            if (inTimerZone)
+            {
+                inTimerZone = false;
+                timer = 0f;
+            }
+            spawner.DespawnEnemy(gameObject);
         }
     }
 }

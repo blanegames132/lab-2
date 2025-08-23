@@ -2,12 +2,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-public class TileHiddenSet : MonoBehaviour
+public class MidFrontTileHiddenSet : MonoBehaviour
 {
-    [Tooltip("Tilemap to affect (FRONT tilemap).")]
+    [Tooltip("Tilemap to affect (MID FRONT tilemap).")]
     public Tilemap targetTilemap;
 
-    [Tooltip("Bubble radius for hiding tiles under the player in the FRONT tilemap.")]
+    [Tooltip("Bubble radius for hiding tiles under the player in the MID FRONT tilemap.")]
     public int bubbleHideRadius = 4;
 
     // Returns the set of positions in the target tilemap that should be hidden for the current player position

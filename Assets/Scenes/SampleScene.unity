@@ -128,10 +128,16 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 127414185}
-  - component: {fileID: 127414186}
   - component: {fileID: 127414187}
   - component: {fileID: 127414189}
   - component: {fileID: 127414190}
+  - component: {fileID: 127414191}
+  - component: {fileID: 127414192}
+  - component: {fileID: 127414193}
+  - component: {fileID: 127414197}
+  - component: {fileID: 127414196}
+  - component: {fileID: 127414195}
+  - component: {fileID: 127414194}
   m_Layer: 0
   m_Name: tilemanager
   m_TagString: Untagged
@@ -154,207 +160,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &127414186
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 87db00a0e35ac35439b8f9a47207ea73, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  hillRandomSeed: 
-  generatedSeedHash: 1120186595
-  usedSeedString: 
-  hillCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: -3803.6
-      value: -273.8795
-      inSlope: 1.0653632
-      outSlope: 1.0653632
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: -3359.0332
-      value: -273.44528
-      inSlope: 0.11078307
-      outSlope: 0.11078307
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 1
-      outWeight: 0
-    - serializedVersion: 3
-      time: -2576.0613
-      value: 1450.0891
-      inSlope: 1.1870464
-      outSlope: 1.1870464
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: -2480.7922
-      value: 1393.7272
-      inSlope: 1.4780585
-      outSlope: 1.4780585
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: -2122.7937
-      value: -1596.3729
-      inSlope: 1.4568201
-      outSlope: 1.4568201
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: -1561.9785
-      value: -1894.0519
-      inSlope: -5.7687893
-      outSlope: -5.7687893
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.3479253
-    - serializedVersion: 3
-      time: -594.0284
-      value: 638.91614
-      inSlope: -0.8786325
-      outSlope: -0.8786325
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 1
-    - serializedVersion: 3
-      time: -299.4186
-      value: 1449.0748
-      inSlope: -0
-      outSlope: -0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: -191.41702
-      value: -543.0862
-      inSlope: -0.027073856
-      outSlope: -0.027073856
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 374.61
-      value: -2.1751935
-      inSlope: -0
-      outSlope: -0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 710.85284
-      value: 946.1448
-      inSlope: 1.144836
-      outSlope: 1.144836
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 916.41235
-      value: -5.636993
-      inSlope: -0.6133281
-      outSlope: -0.6133281
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1082.5731
-      value: 988.0973
-      inSlope: 1.490164
-      outSlope: 1.490164
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1328.5481
-      value: -1.8545138
-      inSlope: 1.1873425
-      outSlope: 1.1873425
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1388.4867
-      value: -1.7834623
-      inSlope: -0
-      outSlope: -0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1841.939
-      value: 113.83191
-      inSlope: 0.96821576
-      outSlope: 0.96821576
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 2506.3818
-      value: -317.89447
-      inSlope: 1.3819246
-      outSlope: 1.3819246
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 0
-    m_PostInfinity: 1
-    m_RotationOrder: 4
-  hillHeight: 14.070726
-  cliffSharpness: 2.8605235
-  seedAmplitude: 1.9798834
-  seedScale: 0.057109524
-  hillNoiseScale: 1.0777035
-  hillCurveRandomJitter: 0.2172158
-  hillRandomAmplitude: 0.54176134
-  hillVerticalShift: -0.87213707
-  groundTilemap: {fileID: 1367466478}
-  frontTilemap: {fileID: 2050080548}
-  middleFrontTilemap: {fileID: 1899764065}
-  middleBackTilemap: {fileID: 854121014}
-  backTilemap: {fileID: 840299867}
-  groundTileAsset: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
-  grassTileAsset: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
-  hideTileAsset: {fileID: 0}
-  cam: {fileID: 519420031}
-  playerTransform: {fileID: 892277581}
-  buffer: 2
-  repeatRange: 16.002705
-  curveShift: -0.4414236
-  perlinOffsetX: 87.81698
-  perlinOffsetZ: 82.680176
-  perlinStrength: 0.46694446
-  perlinBase: 0.9778771
-  worldBottomY: -286
-  tileHiddenSet: {fileID: 127414189}
 --- !u!114 &127414187
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -389,7 +194,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8686f412df1a9a442b86bef79da751c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bubbleHideRadius: 4
+  targetTilemap: {fileID: 2050080548}
+  bubbleHideRadius: 10
 --- !u!114 &127414190
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -403,8 +209,170 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   groundTilemap: {fileID: 1367466478}
-  tileHiddenSet: {fileID: 127414189}
   playerTransform: {fileID: 892277581}
+  radius: 10
+  cameraSpawner: {fileID: 127414192}
+--- !u!114 &127414191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23258ca71cf82b746bab41e7047cf338, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetTilemap: {fileID: 1899764065}
+  bubbleHideRadius: 5
+--- !u!114 &127414192
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5006a8c04160b14eb15685efdb94de3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enableWorldArchive: 1
+  hillRandomSeed: 
+  generatedSeedHash: 1120186595
+  usedSeedString: 
+  caveUtility: {fileID: 127414193}
+  hillCurve:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  hillHeight: 14.070726
+  cliffSharpness: 2.8605235
+  seedAmplitude: 1.9798834
+  seedScale: 0.057109524
+  hillNoiseScale: 1.0777035
+  hillCurveRandomJitter: 0.2172158
+  hillRandomAmplitude: 0.54176134
+  hillVerticalShift: -0.87213707
+  groundTilemap: {fileID: 1367466478}
+  frontTilemap: {fileID: 2050080548}
+  middleFrontTilemap: {fileID: 1899764065}
+  middleBackTilemap: {fileID: 854121014}
+  backTilemap: {fileID: 840299867}
+  groundTileAsset: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  grassTileAsset: {fileID: 11400000, guid: a621ef32daeab7040bd5ffe8291402a3, type: 2}
+  hideTileAsset: {fileID: 0}
+  cam: {fileID: 519420031}
+  playerTransform: {fileID: 892277581}
+  buffer: 2
+  tilemapZSpacings:
+  - tilemap: {fileID: 840299867}
+    zSpacing: -2
+  - tilemap: {fileID: 854121014}
+    zSpacing: -1
+  - tilemap: {fileID: 1367466478}
+    zSpacing: 0
+  - tilemap: {fileID: 1899764065}
+    zSpacing: 1
+  - tilemap: {fileID: 2050080548}
+    zSpacing: 2
+  repeatRange: 0
+  curveShift: -0.4414236
+  perlinOffsetX: 87.81698
+  perlinOffsetZ: 82.680176
+  perlinStrength: 0.46694446
+  perlinBase: 0.9778771
+  worldBottomY: -286
+  tileHiddenSet: {fileID: 127414189}
+  midFrontTileHiddenSet: {fileID: 127414191}
+--- !u!114 &127414193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d46087f64d8356e4ca37fe15e73ee152, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  caveFrequency: 1e+23
+  caveThreshold: 20
+  visibleCaveTileAsset: {fileID: 11400000, guid: 47ae1f00f491c4b4aa786e23f46c2ad9, type: 2}
+  tilemaps: []
+  minX: -100
+  maxX: 100
+  minY: -20
+  maxY: 30
+  z: 0
+--- !u!114 &127414194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfc48a85bcce9d54d858f3bf4d75b38d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  caveFrequency: 0.09
+  caveThreshold: 0.5
+  visibleCaveTileAsset: {fileID: 11400000, guid: 40cb217ef1614df4ab784cbf28374790, type: 2}
+  tilemap: {fileID: 1367466478}
+--- !u!114 &127414195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d215a503ca19bd4ab48b85c1fec4d8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  caveFrequency: 0.09
+  caveThreshold: 0.5
+  visibleCaveTileAsset: {fileID: 11400000, guid: 47ae1f00f491c4b4aa786e23f46c2ad9, type: 2}
+  tilemap: {fileID: 840299867}
+--- !u!114 &127414196
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37af40716a09ed44e86df876f876b738, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  caveFrequency: 0.09
+  caveThreshold: 0.5
+  visibleCaveTileAsset: {fileID: 11400000, guid: d25a5b35eca91874fbdbbace7741b687, type: 2}
+  tilemap: {fileID: 854121014}
+--- !u!114 &127414197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41e4f27e16437f642a90b9c2a4a7a9e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  caveFrequency: 0.09
+  caveThreshold: 0.5
+  visibleCaveTileAsset: {fileID: 11400000, guid: a621ef32daeab7040bd5ffe8291402a3, type: 2}
+  tilemap: {fileID: 1899764065}
 --- !u!1 &175433351
 GameObject:
   m_ObjectHideFlags: 0
@@ -496,7 +464,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 2
+  m_SortingOrder: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -587,8 +555,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f32e1850f8436f24a86788685cd1c7ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  canvas: {fileID: 729243347}
-  buildMenuPanelPrefab: {fileID: 7606662004870964366, guid: 1103f44b76d875147ba5a99a9a259072, type: 3}
 --- !u!1 &217408686
 GameObject:
   m_ObjectHideFlags: 0
@@ -601,6 +567,7 @@ GameObject:
   - component: {fileID: 217408689}
   - component: {fileID: 217408688}
   - component: {fileID: 217408690}
+  - component: {fileID: 217408691}
   m_Layer: 0
   m_Name: Background
   m_TagString: background
@@ -617,7 +584,7 @@ Transform:
   m_GameObject: {fileID: 217408686}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 8.4, y: 11.7, z: 1.9}
+  m_LocalPosition: {x: 274.03, y: 11.7, z: 1.9}
   m_LocalScale: {x: 5.5114174, y: 4.476866, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -637,7 +604,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   yPosOffset: 0
   parallaxSpeed: 0.01
-  debugMode: 1
+  debugMode: 0
 --- !u!212 &217408689
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -705,8 +672,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee6acb44c4067c45b5f47c961adf16e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  layerOrder: -9
+  layerOrder: -10
   sortingLayerName: 
+--- !u!114 &217408691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 217408686}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c32cafe1b0c6144580907c94510bff9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  referenceTransform: {fileID: 892277581}
+  zOffset: -20
 --- !u!1 &304256682
 GameObject:
   m_ObjectHideFlags: 0
@@ -719,6 +700,7 @@ GameObject:
   - component: {fileID: 304256683}
   - component: {fileID: 304256684}
   - component: {fileID: 304256686}
+  - component: {fileID: 304256687}
   m_Layer: 0
   m_Name: fog
   m_TagString: Untagged
@@ -807,7 +789,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: -1
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -843,8 +825,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee6acb44c4067c45b5f47c961adf16e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  layerOrder: 1
+  layerOrder: -3
   sortingLayerName: 
+--- !u!114 &304256687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 304256682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c32cafe1b0c6144580907c94510bff9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  referenceTransform: {fileID: 854121009}
+  zOffset: 0
 --- !u!1 &359322932
 GameObject:
   m_ObjectHideFlags: 0
@@ -855,6 +851,9 @@ GameObject:
   m_Component:
   - component: {fileID: 359322934}
   - component: {fileID: 359322935}
+  - component: {fileID: 359322938}
+  - component: {fileID: 359322937}
+  - component: {fileID: 359322936}
   m_Layer: 0
   m_Name: fog
   m_TagString: Untagged
@@ -889,16 +888,81 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09825a01af2cf16418d8f1ad221dddf5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fogLayers:
-  - name: fog
-    targetTilemap: {fileID: 2050080548}
-    fogTilemap: {fileID: 1611856278}
-    fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
-    fogColor: {r: 0, g: 0, b: 0, a: 0.74509805}
-  player: {fileID: 892277581}
-  worldSpawner: {fileID: 127414186}
+  frontTilemap: {fileID: 2050080548}
+  fogTilemap: {fileID: 1611856278}
+  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  worldSpawner: {fileID: 127414192}
   tileHiddenSet: {fileID: 127414189}
   mainCamera: {fileID: 519420031}
+  fogColor: {r: 0.15354209, g: 0.85660374, b: 0.7255125, a: 0.6}
+  enableHideLogic: 0
+  hideIfNextToAir: 0
+  cameraBuffer: 5
+--- !u!114 &359322936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 359322932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 449351ac53e97eb44afbc7bdc2979325, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  backTilemap: {fileID: 840299867}
+  fogTilemap: {fileID: 304256683}
+  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  worldSpawner: {fileID: 127414192}
+  tileHiddenSet: {fileID: 127414189}
+  mainCamera: {fileID: 519420031}
+  fogColor: {r: 0.86415094, g: 0.19402625, b: 0.19402625, a: 0.6}
+  enableHideLogic: 0
+  hideIfNextToAir: 0
+  cameraBuffer: 5
+--- !u!114 &359322937
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 359322932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a59f710a2cb26645aefef268ab19a8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  middleFrontTilemap: {fileID: 1899764065}
+  fogTilemap: {fileID: 1941820390}
+  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  worldSpawner: {fileID: 127414192}
+  tileHiddenSet: {fileID: 127414189}
+  mainCamera: {fileID: 519420031}
+  fogColor: {r: 0, g: 0.13013363, b: 1, a: 0.6}
+  enableHideLogic: 1
+  hideIfNextToAir: 1
+  cameraBuffer: 5
+--- !u!114 &359322938
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 359322932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe86b810b533bf94aa496f281f035ed5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  middleBackTilemap: {fileID: 854121014}
+  fogTilemap: {fileID: 426545064}
+  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  worldSpawner: {fileID: 127414192}
+  tileHiddenSet: {fileID: 127414189}
+  mainCamera: {fileID: 519420031}
+  fogColor: {r: 1, g: 0, b: 0.9336052, a: 0.6}
+  enableHideLogic: 0
+  hideIfNextToAir: 0
   cameraBuffer: 5
 --- !u!1 &426545060
 GameObject:
@@ -912,6 +976,7 @@ GameObject:
   - component: {fileID: 426545064}
   - component: {fileID: 426545063}
   - component: {fileID: 426545062}
+  - component: {fileID: 426545065}
   m_Layer: 0
   m_Name: fog (1)
   m_TagString: Untagged
@@ -946,7 +1011,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee6acb44c4067c45b5f47c961adf16e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  layerOrder: 1
+  layerOrder: -1
   sortingLayerName: 
 --- !u!483693784 &426545063
 TilemapRenderer:
@@ -1038,6 +1103,20 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &426545065
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 426545060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c32cafe1b0c6144580907c94510bff9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  referenceTransform: {fileID: 0}
+  zOffset: 0
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -1170,7 +1249,7 @@ Transform:
   m_GameObject: {fileID: 519420028}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 3, z: -10}
+  m_LocalPosition: {x: 265.63, y: 3, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1273,7 +1352,7 @@ Transform:
   m_GameObject: {fileID: 619394800}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 9.37, y: 9.61, z: 0}
+  m_LocalPosition: {x: 275, y: 9.61, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1643,7 +1722,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -4
+  m_SortingOrder: -7
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -1805,7 +1884,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: -3
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -1923,7 +2002,9 @@ GameObject:
   - component: {fileID: 892277589}
   - component: {fileID: 892277590}
   - component: {fileID: 892277592}
-  - component: {fileID: 892277591}
+  - component: {fileID: 892277596}
+  - component: {fileID: 892277597}
+  - component: {fileID: 892277598}
   m_Layer: 7
   m_Name: player
   m_TagString: Player
@@ -1995,7 +2076,7 @@ Transform:
   m_GameObject: {fileID: 892277579}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.0164, y: 4, z: 0}
+  m_LocalPosition: {x: 265.61362, y: 4, z: 0}
   m_LocalScale: {x: 0.2377282, y: 0.22483845, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2088,6 +2169,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   grounded: 0
+  playerMovement: {fileID: 892277592}
 --- !u!114 &892277586
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2150,7 +2232,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   anim: {fileID: 892277587}
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 892277580}
+  runSpeed: 16
 --- !u!114 &892277590
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2163,34 +2246,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e53952188c60a2a4ba4d312440fdb007, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawner: {fileID: 127414186}
---- !u!114 &892277591
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 892277579}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3bf4539e2cac8374fb588648d1897785, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  groundChecker: {fileID: 892277585}
-  spriteRenderer: {fileID: 892277580}
-  spawner: {fileID: 127414186}
-  animatorController: {fileID: 892277589}
-  playerMovement: {fileID: 892277592}
-  groundTilemap: {fileID: 1367466478}
-  middleFrontTilemap: {fileID: 1899764065}
-  middleBackTilemap: {fileID: 854121014}
-  worldBottomY: -500
-  movementLocked: 0
-  movementLockTimer: 0
-  movementLockDuration: 0.05
-  speed: 10
-  boxCollider: {fileID: 0}
-  previousZLayer: 0
+  spawner: {fileID: 0}
 --- !u!114 &892277592
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2203,18 +2259,56 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f242a6fba8821d749acbd26bddbbd36c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 10
-  jumpSpeed: 12
-  maxJumpTime: 0.35
+  leftSpeed: 10
+  rightSpeed: 10
+  leftRunSpeed: 16
+  rightRunSpeed: 16
+  jumpForce: 5
   player: {fileID: 892277583}
-  groundTilemap: {fileID: 1367466478}
-  middleFrontTilemap: {fileID: 1899764065}
-  middleBackTilemap: {fileID: 854121014}
-  debugGroundTilemap: {fileID: 0}
   animatorController: {fileID: 0}
-  groundChecker: {fileID: 0}
-  isJumping: 0
-  jumpTimeCounter: 0
+  isGrounded: 0
+--- !u!114 &892277596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892277579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cb4a8ee7ed18654bae043af7ea3998c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &892277597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892277579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ca9d176eecc0e54f9c128f028b37617, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  zMoveAmount: 0.1
+  zMoveMode: 0
+  middleBackTilemap: {fileID: 854121014}
+  backTilemap: {fileID: 840299867}
+  zCheckDistance: 1
+  debugLogging: 1
+--- !u!114 &892277598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892277579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f803c4be5ed330648ac72d61ad0f2084, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1064781976
 GameObject:
   m_ObjectHideFlags: 0
@@ -2225,7 +2319,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1064781978}
   - component: {fileID: 1064781977}
-  - component: {fileID: 1064781979}
   m_Layer: 0
   m_Name: enamyspawn
   m_TagString: Untagged
@@ -2246,10 +2339,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyPrefab: {fileID: 3685190898768921614, guid: ec33a7642bc1ea642b719cc749fb8639, type: 3}
-  cam: {fileID: 519420031}
-  spawner: {fileID: 127414186}
-  spawnChancePerEdge: 0.02
+  spawner: {fileID: 127414192}
+  playerTransform: {fileID: 892277581}
+  spawnChance: 0.274
   maxEnemies: 20
+  spawnZBand: 2
+  spawnLeftMinX: -20
+  spawnLeftMaxX: -4
+  spawnRightMinX: 4
+  spawnRightMaxX: 20
+  despawnLeftAbsX: -30
+  despawnLeftTimerX: -20
+  despawnRightTimerX: 20
+  despawnRightAbsX: 30
+  despawnZBand: 2
+  despawnTimer: 20
 --- !u!4 &1064781978
 Transform:
   m_ObjectHideFlags: 0
@@ -2265,18 +2369,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1064781979
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1064781976}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0dd0ec938ab8f5f4789864cdbded94a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &1252756429
 GameObject:
   m_ObjectHideFlags: 0
@@ -2381,7 +2473,7 @@ Transform:
   m_GameObject: {fileID: 1365041803}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 265.63, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2399,7 +2491,6 @@ GameObject:
   - component: {fileID: 1367466478}
   - component: {fileID: 1367466477}
   - component: {fileID: 1367466480}
-  - component: {fileID: 1367466479}
   - component: {fileID: 1367466481}
   m_Layer: 0
   m_Name: Ground
@@ -2466,7 +2557,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -2551,19 +2642,6 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
---- !u!114 &1367466479
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1367466475}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b99a6597458929c458763b86ddb07eb8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  groundTilemap: {fileID: 1367466478}
 --- !u!19719996 &1367466480
 TilemapCollider2D:
   m_ObjectHideFlags: 0
@@ -2683,6 +2761,7 @@ GameObject:
   - component: {fileID: 1611856278}
   - component: {fileID: 1611856277}
   - component: {fileID: 1611856276}
+  - component: {fileID: 1611856279}
   m_Layer: 0
   m_Name: fog (4)
   m_TagString: Untagged
@@ -2717,7 +2796,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee6acb44c4067c45b5f47c961adf16e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  layerOrder: 6
+  layerOrder: 5
   sortingLayerName: 
 --- !u!483693784 &1611856277
 TilemapRenderer:
@@ -2762,7 +2841,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 3
+  m_SortingOrder: 5
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -2809,6 +2888,20 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &1611856279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1611856274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c32cafe1b0c6144580907c94510bff9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  referenceTransform: {fileID: 2050080553}
+  zOffset: 0
 --- !u!1 &1899764059
 GameObject:
   m_ObjectHideFlags: 0
@@ -2820,7 +2913,6 @@ GameObject:
   - component: {fileID: 1899764060}
   - component: {fileID: 1899764065}
   - component: {fileID: 1899764064}
-  - component: {fileID: 1899764066}
   m_Layer: 0
   m_Name: mid fr
   m_TagString: Untagged
@@ -2886,7 +2978,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: 3
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -2971,20 +3063,6 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
---- !u!114 &1899764066
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1899764059}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3ee6acb44c4067c45b5f47c961adf16e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  layerOrder: 1
-  sortingLayerName: 
 --- !u!1 &1941820386
 GameObject:
   m_ObjectHideFlags: 0
@@ -2997,6 +3075,7 @@ GameObject:
   - component: {fileID: 1941820390}
   - component: {fileID: 1941820389}
   - component: {fileID: 1941820388}
+  - component: {fileID: 1941820391}
   m_Layer: 0
   m_Name: fog (3)
   m_TagString: Untagged
@@ -3031,7 +3110,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee6acb44c4067c45b5f47c961adf16e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  layerOrder: 2
+  layerOrder: 4
   sortingLayerName: 
 --- !u!483693784 &1941820389
 TilemapRenderer:
@@ -3123,6 +3202,20 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &1941820391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1941820386}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c32cafe1b0c6144580907c94510bff9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  referenceTransform: {fileID: 0}
+  zOffset: 0
 --- !u!1 &1980366261
 GameObject:
   m_ObjectHideFlags: 0
@@ -3159,7 +3252,7 @@ MonoBehaviour:
   backTilemap: {fileID: 840299867}
   powerUpPrefab: {fileID: 3560360957326050748, guid: 5110d5b64222a014c8ff0bb94595fb86, type: 3}
   cam: {fileID: 519420031}
-  spawner: {fileID: 127414186}
+  spawner: {fileID: 0}
   spawnChancePerEdge: 0.116
 --- !u!4 &1980366263
 Transform:
@@ -3314,7 +3407,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 5
+  m_SortingOrder: 7
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -3350,7 +3443,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee6acb44c4067c45b5f47c961adf16e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  layerOrder: 0
+  layerOrder: 4
   sortingLayerName: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
