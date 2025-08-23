@@ -41,6 +41,7 @@ public class BackTilemapFogOverlay : MonoBehaviour
         }
     }
 
+
     void Update()
     {
         if (backTilemap == null || fogTilemap == null || fogTile == null ||

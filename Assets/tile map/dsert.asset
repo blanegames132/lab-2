@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: envierment_27_10_0
+  m_Name: dsert
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: -8843525298397062047, guid: 68e9d81e1b7ee3a48a4fe77565e3eec9, type: 3}
+  m_Sprite: {fileID: 603645287242772497, guid: 14b51ce42e4c4ea4a85f897386056eab, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1

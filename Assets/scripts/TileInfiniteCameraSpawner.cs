@@ -12,19 +12,25 @@ public class TilemapZSpacing
     public float zSpacing = 1f;
 }
 
+[System.Serializable]
+public class Biome
+{
+    public string name;
+    public TileBase surfaceTile; // grass, sand, snow...
+    public TileBase groundTile;  // dirt, sandstone, frozen dirt...
+}
+
 public class TileInfiniteCameraSpawner : MonoBehaviour
 {
-    [Header("Debug/Development")]
-    [SerializeField] public bool enableWorldArchive = true; // Toggle archive loading
-
-    [Header("Hill Randomization")]
+    [Header("Seed Settings")]
+    [SerializeField] public bool enableWorldArchive = true;
+    [SerializeField] private bool useCustomSeed = false;
+    [SerializeField] public string customSeed = "MyWorldSeed";
     [SerializeField] public string hillRandomSeed = "";
     [SerializeField, Tooltip("The actual integer hash generated from hillRandomSeed. Changing this does nothing.")]
     private int generatedSeedHash;
     [SerializeField, Tooltip("The actual string seed used (random if blank at start).")]
     private string usedSeedString;
-    [Header("Cave Generation")]
-    [SerializeField] private TileCaveUtility caveUtility; // Reference to your cave utility
 
     [Header("Hill Shape Controls")]
     [SerializeField] private AnimationCurve hillCurve;
@@ -48,7 +54,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] public TileBase hideTileAsset;
     [SerializeField] public Camera cam;
     [SerializeField] public Transform playerTransform;
-    [SerializeField] public int buffer;
+    [SerializeField] public int buffer = 2;
 
     [Header("Tilemap Z Spacing")]
     [Tooltip("Set the z spacing for each tilemap here. The order is ground, front, middleFront, middleBack, back.")]
@@ -62,6 +68,12 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         new TilemapZSpacing()  // back
     };
 
+    [Header("Biomes")]
+    [SerializeField] private List<Biome> biomes = new List<Biome>();
+
+    [Header("Cave Settings")]
+    [SerializeField] private TileCaveUtility caveUtility; // Reference to your cave utility
+
     [Header("Advanced Seed Controls")]
     [SerializeField] private float repeatRange;
     [SerializeField] private float curveShift;
@@ -71,7 +83,12 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] private float perlinBase;
 
     [Header("World Controls")]
-    [SerializeField] private int worldBottomY;
+    [SerializeField] private int worldBottomY = -100;
+
+    [Header("Chunk Settings")]
+    [SerializeField] private int ChunkSize = 16;
+    [SerializeField] private int ChunksVisible = 3;
+    [SerializeField] private int ChunksGenerated = 6;
 
     [Header("Hidden Tiles")]
     [SerializeField] private TileHiddenSet tileHiddenSet;
@@ -84,20 +101,29 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
     public static HashSet<Vector3Int> deletedTiles = new HashSet<Vector3Int>();
     private ChunkedWorldArchive worldArchive;
-    private const int ChunkSize = 16;
-    private const int ChunksVisible = 3;
-    private const int ChunksGenerated = 6;
-
+    private System.Random biomeRand;
+    private Dictionary<Vector2Int, int> chunkBiomes = new();
     private Dictionary<Tilemap, HashSet<Vector3Int>> tilemapActiveTiles = new();
 
     void Awake()
     {
-        if (string.IsNullOrEmpty(hillRandomSeed) || hillRandomSeed.ToLower() == "random")
+        // Seed setup (priority: custom > hillRandom > random)
+        string seedStr = customSeed;
+        if (useCustomSeed && !string.IsNullOrEmpty(customSeed))
+            generatedSeedHash = customSeed.GetHashCode();
+        else if (!string.IsNullOrEmpty(hillRandomSeed) && hillRandomSeed.ToLower() != "random")
+            generatedSeedHash = hillRandomSeed.GetHashCode();
+        else
         {
-            hillRandomSeed = DateTime.Now.Ticks.ToString();
+            seedStr = DateTime.Now.Ticks.ToString();
+            generatedSeedHash = seedStr.GetHashCode();
         }
-        usedSeedString = hillRandomSeed;
+
+        usedSeedString = seedStr;
+        biomeRand = new System.Random(generatedSeedHash);
+
         ApplySeedRandomization();
+
         if (enableWorldArchive)
             worldArchive = new ChunkedWorldArchive(usedSeedString);
         else
@@ -106,81 +132,15 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
     void OnValidate()
     {
-        usedSeedString = hillRandomSeed;
+        usedSeedString = useCustomSeed && !string.IsNullOrEmpty(customSeed) ? customSeed : hillRandomSeed;
         ApplySeedRandomization();
     }
 
     [ContextMenu("Recalculate Seed Hash")]
     public void RecalculateSeedHash()
     {
-        usedSeedString = hillRandomSeed;
+        usedSeedString = useCustomSeed && !string.IsNullOrEmpty(customSeed) ? customSeed : hillRandomSeed;
         ApplySeedRandomization();
-    }
-
-    private void SpawnTileWithCaveCheck(int x, int y, int z, int playerZ, TileBase groundTile, TileCaveUtility caveUtil)
-    {
-        Vector3Int pos = new Vector3Int(x, y, z);
-
-        // 1. Use the cave generator to decide if AIR or solid
-        bool isCave = caveUtil.CaveGenerator(x, y, z) > 0.5f;
-
-        // 2. Check archive: If archive says ANYTHING (Air, Dirt, Grass, etc.), don't spawn or overwrite!
-        if (enableWorldArchive && worldArchive != null)
-        {
-            TileData tileData = worldArchive.TryGetTile(pos);
-            if (tileData != null)
-            {
-                // If the archive is out of sync (wrong type), update it if the new cave gen says it's AIR
-                if (isCave && tileData.type != TileType.Air)
-                {
-                    worldArchive.SetTile(pos, new TileData { type = TileType.Air });
-                    SetTileForZ(pos, z, playerZ, null);
-                }
-                else if (!isCave && tileData.type != TileType.Dirt && tileData.type != TileType.Grass)
-                {
-                    worldArchive.SetTile(pos, new TileData { type = TileType.Dirt });
-                    SetTileForZ(pos, z, playerZ, groundTile);
-                }
-                else
-                {
-                    SetTileForZ(pos, z, playerZ, tileData.type == TileType.Air ? null
-                        : (tileData.type == TileType.Grass ? grassTileAsset : groundTile));
-                }
-                return;
-            }
-        }
-
-        if (isCave)
-        {
-            // Mark as Air in archive (so it persists)
-            if (enableWorldArchive && worldArchive != null)
-                worldArchive.SetTile(pos, new TileData { type = TileType.Air });
-
-            SetTileForZ(pos, z, playerZ, null); // spawn air
-        }
-        else
-        {
-            // Mark as ground in archive
-            if (enableWorldArchive && worldArchive != null)
-                worldArchive.SetTile(pos, new TileData { type = TileType.Dirt });
-
-            SetTileForZ(pos, z, playerZ, groundTile);
-        }
-    }
-
-    private TileBase GetSurfaceTileAsset(Vector3Int pos)
-    {
-        TileType tileType = GetTileType(pos, TileType.Grass, true);
-        if (tileType == TileType.Air)
-            return null;
-        return tileType == TileType.Grass ? grassTileAsset : groundTileAsset;
-    }
-
-    public int GetSurfaceY(int x, int z)
-    {
-        float hillValue = GetHillValue(x, z);
-        int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
-        return surfaceY;
     }
 
     int HashSeed(string seed)
@@ -201,13 +161,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     {
         rand = new System.Random(rand.Next() + offset);
         return rand.Next(min, max);
-    }
-
-    private void Start()
-    {
-        Debug.Log($"Hill Value at 0, 0: {GetHillValue(0, 0)}");
-        Debug.Log($"Hill Value at 10, 10: {GetHillValue(10, 10)}");
-        Debug.Log($"Hill Value at 20, 20: {GetHillValue(20, 20)}");
     }
 
     void ApplySeedRandomization()
@@ -260,6 +213,33 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         }
     }
 
+    // --- BIOME SUPPORT ---
+    private int GetChunkBiome(int chunkX, int z)
+    {
+        Vector2Int key = new Vector2Int(chunkX, z);
+        if (!chunkBiomes.TryGetValue(key, out int biomeIndex))
+        {
+            if (biomes.Count == 0) return -1;
+            biomeIndex = biomeRand.Next(0, biomes.Count);
+            chunkBiomes[key] = biomeIndex;
+        }
+        return biomeIndex;
+    }
+
+    private TileBase GetSurfaceTileAsset(Vector3Int pos, int biomeIndex)
+    {
+        if (biomeIndex < 0 || biomeIndex >= biomes.Count)
+            return grassTileAsset; // fallback
+        return biomes[biomeIndex].surfaceTile;
+    }
+    private TileBase GetGroundTileAsset(int biomeIndex)
+    {
+        if (biomeIndex < 0 || biomeIndex >= biomes.Count)
+            return groundTileAsset; // fallback
+        return biomes[biomeIndex].groundTile;
+    }
+
+    // --- HILL/CAVE GEN ---
     public float GetHillValue(int x, int z)
     {
         float layerOffset = Mathf.PerlinNoise(z * hillNoiseScale + perlinOffsetZ, curveShift * 0.29f) * 2f - 1f;
@@ -287,11 +267,97 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         return finalValue;
     }
 
-    void Update()
+    public int GetSurfaceY(int x, int z) => Mathf.RoundToInt(GetHillValue(x, z) * hillHeight);
+
+    private TileType GetTileType(Vector3Int pos, TileType fallback, bool isSurface)
+    {
+        if (enableWorldArchive && worldArchive != null)
+        {
+            TileData tileData = worldArchive.TryGetTile(pos);
+            if (tileData != null)
+                return tileData.type;
+            var chosen = fallback;
+            worldArchive.SetTile(pos, new TileData { type = chosen });
+            return chosen;
+        }
+        return fallback;
+    }
+
+    private void SetTileForZ(Vector3Int pos, int z, int playerZ, TileBase tile)
+    {
+        // Clear all tilemaps at this position
+        foreach (var spacing in tilemapZSpacings)
+            if (spacing.tilemap != null)
+                spacing.tilemap.SetTile(pos, null);
+
+        // Find the tilemap whose zSpacing makes it match z
+        for (int i = 0; i < tilemapZSpacings.Count; i++)
+        {
+            if (tilemapZSpacings[i].tilemap != null && z == playerZ + (int)tilemapZSpacings[i].zSpacing)
+            {
+                tilemapZSpacings[i].tilemap.SetTile(pos, tile);
+                break;
+            }
+        }
+    }
+
+    // --- CAVE-AWARE TILE SPAWN ---
+    private void SpawnTileWithCaveCheck(int x, int y, int z, int playerZ, TileBase groundTile, TileCaveUtility caveUtil, int biomeIndex)
+    {
+        Vector3Int pos = new Vector3Int(x, y, z);
+
+        bool isCave = caveUtil != null ? caveUtil.CaveGenerator(x, y, z) > 0.5f : false;
+
+        // 2. Check archive: If archive says ANYTHING (Air, Dirt, Grass, etc.), don't spawn or overwrite!
+        if (enableWorldArchive && worldArchive != null)
+        {
+            TileData tileData = worldArchive.TryGetTile(pos);
+            if (tileData != null)
+            {
+                // If the archive is out of sync (wrong type), update it if the new cave gen says it's AIR
+                if (isCave && tileData.type != TileType.Air)
+                {
+                    worldArchive.SetTile(pos, new TileData { type = TileType.Air });
+                    SetTileForZ(pos, z, playerZ, null);
+                }
+                else if (!isCave && tileData.type != TileType.Dirt && tileData.type != TileType.Grass)
+                {
+                    worldArchive.SetTile(pos, new TileData { type = TileType.Dirt });
+                    SetTileForZ(pos, z, playerZ, groundTile);
+                }
+                else
+                {
+                    SetTileForZ(pos, z, playerZ, tileData.type == TileType.Air ? null
+                        : (tileData.type == TileType.Grass ? GetSurfaceTileAsset(pos, biomeIndex) : groundTile));
+                }
+                return;
+            }
+        }
+
+        if (isCave)
+        {
+            // Mark as Air in archive (so it persists)
+            if (enableWorldArchive && worldArchive != null)
+                worldArchive.SetTile(pos, new TileData { type = TileType.Air });
+
+            SetTileForZ(pos, z, playerZ, null); // spawn air
+        }
+        else
+        {
+            // Mark as ground in archive
+            if (enableWorldArchive && worldArchive != null)
+                worldArchive.SetTile(pos, new TileData { type = TileType.Dirt });
+
+            SetTileForZ(pos, z, playerZ, groundTile);
+        }
+    }
+
+    // --- TILE LOADING/CHUNKS ---
+    private void Update()
     {
         if (cam == null) cam = Camera.main;
         if (playerTransform == null) return;
-        if (groundTilemap == null || frontTilemap == null || middleFrontTilemap == null || middleBackTilemap == null || backTilemap == null || groundTileAsset == null || grassTileAsset == null) return;
+        if (groundTilemap == null || frontTilemap == null || middleFrontTilemap == null || middleBackTilemap == null || backTilemap == null) return;
 
         Vector3Int playerPos = Vector3Int.FloorToInt(playerTransform.position);
         int playerZ = playerPos.z;
@@ -349,33 +415,22 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         if (enableWorldArchive && worldArchive != null)
             worldArchive.UnloadDistantChunks(playerPos);
 
+        // --- HIDDEN TILES FOG ---
         if (tileHiddenSet != null)
         {
             var currentlyHidden = tileHiddenSet.GetTilesToHide(playerTransform.position);
 
             foreach (var pos in currentlyHidden)
-            {
                 frontTilemap.SetTile(pos, hideTileAsset);
-            }
             foreach (var pos in previouslyHidden)
-            {
                 if (!currentlyHidden.Contains(pos))
-                {
                     frontTilemap.SetTile(pos, null);
-                }
-            }
 
             foreach (var pos in currentlyHidden)
-            {
                 middleBackTilemap.SetTile(pos, hideTileAsset);
-            }
             foreach (var pos in previouslyHidden)
-            {
                 if (!currentlyHidden.Contains(pos))
-                {
                     middleBackTilemap.SetTile(pos, null);
-                }
-            }
 
             previouslyHidden = currentlyHidden;
         }
@@ -385,16 +440,10 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             var currentlyHiddenMidFront = midFrontTileHiddenSet.GetTilesToHide(playerTransform.position);
 
             foreach (var pos in currentlyHiddenMidFront)
-            {
                 middleFrontTilemap.SetTile(pos, hideTileAsset);
-            }
             foreach (var pos in previouslyHiddenMidFront)
-            {
                 if (!currentlyHiddenMidFront.Contains(pos))
-                {
                     middleFrontTilemap.SetTile(pos, null);
-                }
-            }
 
             previouslyHiddenMidFront = currentlyHiddenMidFront;
         }
@@ -403,6 +452,66 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
         RefreshAllActiveTiles();
         RefreshAllTilemapActivesForFog();
+    }
+
+    public void SpawnOrLoadChunk(int chunkX, int z, int buildBottom, int maxY, int playerZ, bool render)
+    {
+        int biomeIndex = GetChunkBiome(chunkX, z);
+
+        int startX = chunkX * ChunkSize;
+        int endX = startX + ChunkSize - 1;
+
+        for (int x = startX; x <= endX; x++)
+        {
+            float hillValue = GetHillValue(x, z);
+            int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
+
+            // Surface tile
+            Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
+            if (render && !deletedTiles.Contains(surfacePos))
+            {
+                SpawnTileWithCaveCheck(x, surfaceY, z, playerZ,
+                    GetSurfaceTileAsset(surfacePos, biomeIndex), caveUtility, biomeIndex);
+
+                activeTiles.Add(surfacePos);
+            }
+
+            // Underground tiles
+            for (int y = surfaceY - 1; y >= buildBottom; y--)
+            {
+                Vector3Int dirtPos = new Vector3Int(x, y, z);
+                if (render && !deletedTiles.Contains(dirtPos))
+                {
+                    SpawnTileWithCaveCheck(x, y, z, playerZ,
+                        GetGroundTileAsset(biomeIndex), caveUtility, biomeIndex);
+
+                    activeTiles.Add(dirtPos);
+                }
+            }
+        }
+    }
+
+    // --- UTILS AND EDITOR ---
+    private void UpdateHillCurvePreview(int zLayer)
+    {
+        if (playerTransform == null) return;
+        if (hillCurve == null) hillCurve = new AnimationCurve();
+
+        const int sampleCount = 100;
+        const float viewWidth = 50f;
+        float playerX = playerTransform.position.x;
+        float startX = playerX - viewWidth * 0.5f;
+        float endX = playerX + viewWidth * 0.5f;
+
+        var keys = new Keyframe[sampleCount];
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float t = (float)i / (sampleCount - 1);
+            float x = Mathf.Lerp(startX, endX, t);
+            float y = GetHillValue(Mathf.RoundToInt(x), zLayer);
+            keys[i] = new Keyframe(t, y);
+        }
+        hillCurve.keys = keys;
     }
 
     private void RefreshAllActiveTiles()
@@ -433,37 +542,44 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         }
     }
 
-    private void SpawnOrLoadChunk(int chunkX, int z, int buildBottom, int maxY, int playerZ, bool render)
+    public HashSet<Vector3Int> GetActiveTiles() => activeTiles;
+    public bool IsTileHidden(Vector3Int pos)
     {
-        int startX = chunkX * ChunkSize;
-        int endX = startX + ChunkSize - 1;
-
-        for (int x = startX; x <= endX; x++)
-        {
-            float hillValue = GetHillValue(x, z);
-            int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
-
-            // --- CAVE GEN LOGIC FIRST: for surface and below ---
-            Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
-            if (render && !deletedTiles.Contains(surfacePos))
-            {
-                SpawnTileWithCaveCheck(x, surfaceY, z, playerZ, GetSurfaceTileAsset(surfacePos), caveUtility);
-                activeTiles.Add(surfacePos);
-            }
-
-            // Underground/dirt positions
-            for (int y = surfaceY - 1; y >= buildBottom; y--)
-            {
-                Vector3Int dirtPos = new Vector3Int(x, y, z);
-                if (render && !deletedTiles.Contains(dirtPos))
-                {
-                    SpawnTileWithCaveCheck(x, y, z, playerZ, groundTileAsset, caveUtility);
-                    activeTiles.Add(dirtPos);
-                }
-            }
-        }
+        if (tileHiddenSet == null || playerTransform == null) return false;
+        var currentlyHidden = tileHiddenSet.GetTilesToHide(playerTransform.position);
+        return currentlyHidden != null && currentlyHidden.Contains(pos);
     }
+    public void ModifyTile(Vector3Int pos, TileType type)
+    {
+        if (enableWorldArchive && worldArchive != null)
+            worldArchive.SetTile(pos, new TileData { type = type });
+    }
+    public void DeleteTile(Vector3Int pos)
+    {
+        deletedTiles.Add(pos);
+        if (groundTilemap != null) groundTilemap.SetTile(pos, null);
+        if (frontTilemap != null) frontTilemap.SetTile(pos, null);
+        if (middleFrontTilemap != null) middleFrontTilemap.SetTile(pos, null);
+        if (middleBackTilemap != null) middleBackTilemap.SetTile(pos, null);
+        if (backTilemap != null) backTilemap.SetTile(pos, null);
 
+        if (enableWorldArchive && worldArchive != null)
+            worldArchive.RemoveTile(pos);
+    }
+    public void SaveGame()
+    {
+        if (enableWorldArchive && worldArchive != null)
+            worldArchive.SaveAll();
+    }
+    public void RefreshAllTilemapActivesForFog()
+    {
+        tilemapActiveTiles.Clear();
+        AddTilemapTilesToActiveForFog(groundTilemap);
+        AddTilemapTilesToActiveForFog(frontTilemap);
+        AddTilemapTilesToActiveForFog(middleFrontTilemap);
+        AddTilemapTilesToActiveForFog(middleBackTilemap);
+        AddTilemapTilesToActiveForFog(backTilemap);
+    }
     public TileType GetTileTypeForFog(Vector3Int pos, TileType fallback)
     {
         if (enableWorldArchive && worldArchive != null)
@@ -480,110 +596,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             return TileType.Grass;
         return TileType.Dirt;
     }
-
-    private TileType GetTileType(Vector3Int pos, TileType fallback, bool isSurface)
-    {
-        if (enableWorldArchive && worldArchive != null)
-        {
-            TileData tileData = worldArchive.TryGetTile(pos);
-            if (tileData != null)
-                return tileData.type;
-            var chosen = fallback;
-            worldArchive.SetTile(pos, new TileData { type = chosen });
-            return chosen;
-        }
-        return fallback;
-    }
-
-    private void SetTileForZ(Vector3Int pos, int z, int playerZ, TileBase tile)
-    {
-        // Clear all tilemaps at this position
-        foreach (var spacing in tilemapZSpacings)
-            if (spacing.tilemap != null)
-                spacing.tilemap.SetTile(pos, null);
-
-        // Find the tilemap whose zSpacing makes it match z
-        for (int i = 0; i < tilemapZSpacings.Count; i++)
-        {
-            if (tilemapZSpacings[i].tilemap != null && z == playerZ + (int)tilemapZSpacings[i].zSpacing)
-            {
-                tilemapZSpacings[i].tilemap.SetTile(pos, tile);
-                break;
-            }
-        }
-    }
-
-    private void UpdateHillCurvePreview(int zLayer)
-    {
-        if (playerTransform == null) return;
-        if (hillCurve == null) hillCurve = new AnimationCurve();
-
-        const int sampleCount = 100;
-        const float viewWidth = 50f;
-        float playerX = playerTransform.position.x;
-        float startX = playerX - viewWidth * 0.5f;
-        float endX = playerX + viewWidth * 0.5f;
-
-        var keys = new Keyframe[sampleCount];
-        for (int i = 0; i < sampleCount; i++)
-        {
-            float t = (float)i / (sampleCount - 1);
-            float x = Mathf.Lerp(startX, endX, t);
-            float y = GetHillValue(Mathf.RoundToInt(x), zLayer);
-            keys[i] = new Keyframe(t, y);
-        }
-        hillCurve.keys = keys;
-    }
-
-    public HashSet<Vector3Int> GetActiveTiles()
-    {
-        return activeTiles;
-    }
-
-    public bool IsTileHidden(Vector3Int pos)
-    {
-        if (tileHiddenSet == null) return false;
-        if (playerTransform == null) return false;
-
-        var currentlyHidden = tileHiddenSet.GetTilesToHide(playerTransform.position);
-        return currentlyHidden != null && currentlyHidden.Contains(pos);
-    }
-
-    public void ModifyTile(Vector3Int pos, TileType type)
-    {
-        if (enableWorldArchive && worldArchive != null)
-            worldArchive.SetTile(pos, new TileData { type = type });
-    }
-
-    public void DeleteTile(Vector3Int pos)
-    {
-        deletedTiles.Add(pos);
-        if (groundTilemap != null) groundTilemap.SetTile(pos, null);
-        if (frontTilemap != null) frontTilemap.SetTile(pos, null);
-        if (middleFrontTilemap != null) middleFrontTilemap.SetTile(pos, null);
-        if (middleBackTilemap != null) middleBackTilemap.SetTile(pos, null);
-        if (backTilemap != null) backTilemap.SetTile(pos, null);
-
-        if (enableWorldArchive && worldArchive != null)
-            worldArchive.RemoveTile(pos);
-    }
-
-    public void SaveGame()
-    {
-        if (enableWorldArchive && worldArchive != null)
-            worldArchive.SaveAll();
-    }
-
-    public void RefreshAllTilemapActivesForFog()
-    {
-        tilemapActiveTiles.Clear();
-        AddTilemapTilesToActiveForFog(groundTilemap);
-        AddTilemapTilesToActiveForFog(frontTilemap);
-        AddTilemapTilesToActiveForFog(middleFrontTilemap);
-        AddTilemapTilesToActiveForFog(middleBackTilemap);
-        AddTilemapTilesToActiveForFog(backTilemap);
-    }
-
     private void AddTilemapTilesToActiveForFog(Tilemap tilemap)
     {
         if (tilemap == null) return;
@@ -601,7 +613,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
                         set.Add(pos);
                 }
     }
-
     public HashSet<Vector3Int> GetActiveTilesForTilemap(Tilemap tilemap)
     {
         if (tilemapActiveTiles.TryGetValue(tilemap, out var set))
