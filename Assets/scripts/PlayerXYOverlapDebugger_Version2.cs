@@ -26,8 +26,9 @@ public class PlayerZMovementFlexible : MonoBehaviour
 
     // True if player is within 1.5 Z units of a blocking tile behind
     public bool zBlockedBehind { get; private set; } = false;
+    // True if player is within 1.7 Z units of a hidden tile in front (this is the only "front" block check)
+    public bool zBlockedFrontHidden { get; private set; } = false;
 
-    // Debug status toggle and timer/counter for repeated status logging
     [Header("Debug Status Logging")]
     [SerializeField] private bool showZBlockStateRepeatedly = false;
     [SerializeField] private float statusLogInterval = 1.0f; // seconds between logs
@@ -35,6 +36,7 @@ public class PlayerZMovementFlexible : MonoBehaviour
     private int statusLogsLeft = 0;
     private const int STATUS_LOG_COUNT = 5;
     private bool[] lastZBlockedStates = new bool[STATUS_LOG_COUNT];
+    private bool[] lastZBlockedFrontHiddenStates = new bool[STATUS_LOG_COUNT];
     private int stateIndex = 0;
 
     void Update()
@@ -42,7 +44,7 @@ public class PlayerZMovementFlexible : MonoBehaviour
         Vector3 pos = transform.position;
         bool moved = false;
 
-        // Check if blocked by tile directly behind (within 1.5 Z units)
+        // --- Blocked BEHIND ---
         zBlockedBehind = false;
         if (middleBackTilemap != null)
         {
@@ -55,15 +57,48 @@ public class PlayerZMovementFlexible : MonoBehaviour
             if (tileBehind != null && zDist <= 1.5f)
             {
                 zBlockedBehind = true;
-                Debug.Log("blocked");
+                Debug.Log("blocked behind");
             }
             else
             {
-                Debug.Log("not blocked");
+                Debug.Log("not blocked behind");
             }
         }
 
-        // --- Debug Z Blocked Status 5x toggleable logging ---
+        // --- Blocked by (hidden or not) tile in FRONT, at most 1.7 away ---
+        zBlockedFrontHidden = false;
+        TileBase tileInFront = null;
+        string tileInFrontName = "None";
+        float zDistFront = 0f;
+        if (spawner != null)
+        {
+            Vector3Int playerCell = middleBackTilemap != null
+                ? middleBackTilemap.WorldToCell(transform.position)
+                : Vector3Int.FloorToInt(transform.position);
+            Vector3Int frontCell = new Vector3Int(playerCell.x, playerCell.y, playerCell.z + zCheckDistance);
+
+            zDistFront = Mathf.Abs(transform.position.z - frontCell.z);
+
+            // Find tile in front, even if hidden
+            tileInFront = spawner.GetActualTileAssetAtCell(frontCell);
+            tileInFrontName = tileInFront != null ? tileInFront.name : "None";
+
+            // Block if there is ANY tile in front and it's within 1.7 units
+            if (tileInFront != null && zDistFront <= 1.7f)
+            {
+                zBlockedFrontHidden = true;
+                Debug.Log($"blocked front: tile '{tileInFrontName}' is {zDistFront} units away (<= 1.7)");
+            }
+            else
+            {
+                Debug.Log("not blocked front");
+            }
+
+            // Log what tile is in front of the player, even if hidden
+            Debug.Log($"Tile in front of player (even if hidden): {tileInFrontName}, Z distance: {zDistFront}");
+        }
+
+        // --- Debug Z Blocked Status 5x toggleable logging (for behind and front hidden) ---
         if (showZBlockStateRepeatedly && statusLogsLeft > 0)
         {
             statusLogTimer += Time.deltaTime;
@@ -71,9 +106,10 @@ public class PlayerZMovementFlexible : MonoBehaviour
             {
                 statusLogTimer = 0f;
 
-                // Store and log state
+                // Store and log both states
                 lastZBlockedStates[stateIndex] = zBlockedBehind;
-                Debug.Log($"[StatusLog {stateIndex + 1}/5] zBlockedBehind: {zBlockedBehind}");
+                lastZBlockedFrontHiddenStates[stateIndex] = zBlockedFrontHidden;
+                Debug.Log($"[StatusLog {stateIndex + 1}/5] zBlockedBehind: {zBlockedBehind}, zBlockedFrontHidden: {zBlockedFrontHidden}");
 
                 stateIndex++;
                 statusLogsLeft--;
@@ -84,13 +120,19 @@ public class PlayerZMovementFlexible : MonoBehaviour
 
                     // Show summary of all 5
                     string allStates = "";
+                    string allFrontStates = "";
                     for (int i = 0; i < STATUS_LOG_COUNT; i++)
                     {
                         allStates += lastZBlockedStates[i] ? "true" : "false";
+                        allFrontStates += lastZBlockedFrontHiddenStates[i] ? "true" : "false";
                         if (i < STATUS_LOG_COUNT - 1)
+                        {
                             allStates += ", ";
+                            allFrontStates += ", ";
+                        }
                     }
                     Debug.Log($"[StatusLog] Last 5 zBlockedBehind states: [{allStates}]");
+                    Debug.Log($"[StatusLog] Last 5 zBlockedFrontHidden states: [{allFrontStates}]");
                 }
             }
         }
@@ -104,7 +146,11 @@ public class PlayerZMovementFlexible : MonoBehaviour
                 statusLogsLeft = STATUS_LOG_COUNT;
                 statusLogTimer = 0f;
                 stateIndex = 0;
-                for (int i = 0; i < STATUS_LOG_COUNT; i++) lastZBlockedStates[i] = false;
+                for (int i = 0; i < STATUS_LOG_COUNT; i++)
+                {
+                    lastZBlockedStates[i] = false;
+                    lastZBlockedFrontHiddenStates[i] = false;
+                }
                 Debug.Log("[StatusLog] Started repeated status logging.");
             }
             else
@@ -113,8 +159,8 @@ public class PlayerZMovementFlexible : MonoBehaviour
             }
         }
 
-        // Movement logic
-        if (Input.GetKey(KeyCode.W))
+        // --- Movement logic: W blocks if any tile is in front and within 1.7 units ---
+        if (Input.GetKey(KeyCode.W) && !zBlockedFrontHidden)
         {
             if (zMoveMode == ZMoveMode.BlockedByTile)
             {
@@ -136,6 +182,10 @@ public class PlayerZMovementFlexible : MonoBehaviour
                 pos.z += zMoveAmount;
                 moved = true;
             }
+        }
+        else if (Input.GetKey(KeyCode.W) && zBlockedFrontHidden)
+        {
+            Debug.Log($"Blocked from moving forward in Z because tile '{tileInFrontName}' is {zDistFront} units away (<= 1.7)");
         }
 
         // S movement is only possible if not blocked
@@ -162,7 +212,6 @@ public class PlayerZMovementFlexible : MonoBehaviour
                 moved = true;
             }
         }
-        // If zBlockedBehind is true and S is pressed, nothing happens
 
         if (moved)
             transform.position = pos;

@@ -162,6 +162,38 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         rand = new System.Random(rand.Next() + offset);
         return rand.Next(min, max);
     }
+    // Place this method inside your TileInfiniteCameraSpawner class (anywhere in the class body, but NOT inside another method)
+    public TileBase GetActualTileAssetAtCell(Vector3Int cell)
+    {
+        // Try all tilemaps in order of likely "frontness"
+        TileBase tile = null;
+        if (frontTilemap != null)
+            tile = frontTilemap.GetTile(cell);
+        if (tile == null && middleFrontTilemap != null)
+            tile = middleFrontTilemap.GetTile(cell);
+        if (tile == null && middleBackTilemap != null)
+            tile = middleBackTilemap.GetTile(cell);
+        if (tile == null && backTilemap != null)
+            tile = backTilemap.GetTile(cell);
+        if (tile == null && groundTilemap != null)
+            tile = groundTilemap.GetTile(cell);
+
+        // If still null, try archive-based guess (biome/terrain gen)
+        if (tile == null && enableWorldArchive && worldArchive != null)
+        {
+            TileData tileData = worldArchive.TryGetTile(cell);
+            if (tileData != null)
+            {
+                if (tileData.type == TileType.Grass)
+                    tile = GetSurfaceTileAsset(cell, GetChunkBiome(cell.x / ChunkSize, cell.z));
+                else if (tileData.type == TileType.Dirt)
+                    tile = GetGroundTileAsset(GetChunkBiome(cell.x / ChunkSize, cell.z));
+                // Extend for other types if needed
+            }
+        }
+
+        return tile;
+    }
 
     void ApplySeedRandomization()
     {
@@ -306,33 +338,10 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     {
         Vector3Int pos = new Vector3Int(x, y, z);
 
-        bool isCave = caveUtil != null ? caveUtil.CaveGenerator(x, y, z) > 0.5f : false;
+        int surfaceY = GetSurfaceY(x, z); // Get the surfaceY for this column
 
-        // 2. Check archive: If archive says ANYTHING (Air, Dirt, Grass, etc.), don't spawn or overwrite!
-        if (enableWorldArchive && worldArchive != null)
-        {
-            TileData tileData = worldArchive.TryGetTile(pos);
-            if (tileData != null)
-            {
-                // If the archive is out of sync (wrong type), update it if the new cave gen says it's AIR
-                if (isCave && tileData.type != TileType.Air)
-                {
-                    worldArchive.SetTile(pos, new TileData { type = TileType.Air });
-                    SetTileForZ(pos, z, playerZ, null);
-                }
-                else if (!isCave && tileData.type != TileType.Dirt && tileData.type != TileType.Grass)
-                {
-                    worldArchive.SetTile(pos, new TileData { type = TileType.Dirt });
-                    SetTileForZ(pos, z, playerZ, groundTile);
-                }
-                else
-                {
-                    SetTileForZ(pos, z, playerZ, tileData.type == TileType.Air ? null
-                        : (tileData.type == TileType.Grass ? GetSurfaceTileAsset(pos, biomeIndex) : groundTile));
-                }
-                return;
-            }
-        }
+        // CAVE PRIORITY: If cave, always spawn as air/null, never anything else
+        bool isCave = caveUtil != null && caveUtil.IsCaveAt(x, y, z, surfaceY);
 
         if (isCave)
         {
@@ -340,16 +349,37 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             if (enableWorldArchive && worldArchive != null)
                 worldArchive.SetTile(pos, new TileData { type = TileType.Air });
 
-            SetTileForZ(pos, z, playerZ, null); // spawn air
+            SetTileForZ(pos, z, playerZ, null); // always spawn air for cave!
+            return;
         }
-        else
-        {
-            // Mark as ground in archive
-            if (enableWorldArchive && worldArchive != null)
-                worldArchive.SetTile(pos, new TileData { type = TileType.Dirt });
 
-            SetTileForZ(pos, z, playerZ, groundTile);
+        // 2. Check archive: If archive says ANYTHING (Air, Dirt, Grass, etc.), don't spawn or overwrite!
+        if (enableWorldArchive && worldArchive != null)
+        {
+            TileData tileData = worldArchive.TryGetTile(pos);
+            if (tileData != null)
+            {
+                if (tileData.type == TileType.Air)
+                {
+                    SetTileForZ(pos, z, playerZ, null);
+                }
+                else if (tileData.type == TileType.Grass)
+                {
+                    SetTileForZ(pos, z, playerZ, GetSurfaceTileAsset(pos, biomeIndex));
+                }
+                else
+                {
+                    SetTileForZ(pos, z, playerZ, groundTile);
+                }
+                return;
+            }
         }
+
+        // Mark as ground in archive
+        if (enableWorldArchive && worldArchive != null)
+            worldArchive.SetTile(pos, new TileData { type = TileType.Dirt });
+
+        SetTileForZ(pos, z, playerZ, groundTile);
     }
 
     // --- TILE LOADING/CHUNKS ---

@@ -7,8 +7,10 @@ public class PlayerZMovement : MonoBehaviour
     [SerializeField] private Tilemap middleBackTilemap;
     [SerializeField] private int zCheckDistance = 1;
 
-    // This bool is true if blocked (so S movement is not allowed)
+    // True if blocked behind (so S movement is not allowed)
     public bool zBlockedBehind { get; private set; } = false;
+    // True if blocked in front (so W movement is not allowed)
+    public bool zBlockedFront { get; private set; } = false;
 
     void Update()
     {
@@ -16,11 +18,20 @@ public class PlayerZMovement : MonoBehaviour
 
         // Check if blocked behind (S direction)
         zBlockedBehind = IsTileBlocked(Vector3Int.back);
+        // Check if blocked in front (W direction)
+        zBlockedFront = IsTileBlocked(Vector3Int.forward);
 
-        // Move "forward" in Z when holding W
+        // Move "forward" in Z when holding W, only if not blocked
         if (Input.GetKey(KeyCode.W))
         {
-            pos.z += zMoveAmount;
+            if (!zBlockedFront)
+            {
+                pos.z += zMoveAmount;
+            }
+            else
+            {
+                Debug.Log("W movement blocked: zBlockedFront is TRUE, cannot move forward in Z.");
+            }
         }
         // Move "back" in Z when holding S, only if not blocked
         if (Input.GetKey(KeyCode.S))
