@@ -24,6 +24,9 @@ public class ChunkedWorldArchive
     private bool hasManualSave = false;
     private int modificationCounter = 0;
 
+    // Global file I/O lock to serialize ALL reads/writes across the process
+    private static readonly object FileIoLock = new object();
+
     public ChunkedWorldArchive(string seed)
     {
         string baseFolder = Path.Combine(Application.persistentDataPath, "mygame");
@@ -32,6 +35,9 @@ public class ChunkedWorldArchive
         Application.quitting += OnAppQuit;
     }
 
+    // -----------------------------
+    // Tile Operations
+    // -----------------------------
     public void SetTile(Vector3Int pos, TileData data)
     {
         var chunkCoords = WorldToChunk(pos);
@@ -53,6 +59,7 @@ public class ChunkedWorldArchive
             TouchChunk(chunkCoords);
             return chunk.TryGetTile(pos);
         }
+
         // Try load from disk
         if (File.Exists(ChunkPath(chunkCoords.x, chunkCoords.z)))
         {
@@ -77,9 +84,15 @@ public class ChunkedWorldArchive
         }
     }
 
+    // -----------------------------
+    // Save/Unload
+    // -----------------------------
     public void SaveAll()
     {
-        foreach (var chunkCoord in modifiedChunks)
+        // copy to avoid collection modification issues
+        var toSave = new List<(int x, int z)>(modifiedChunks);
+
+        foreach (var chunkCoord in toSave)
         {
             if (loadedChunks.TryGetValue(chunkCoord, out var chunk))
             {
@@ -117,6 +130,9 @@ public class ChunkedWorldArchive
         }
     }
 
+    // -----------------------------
+    // Helpers
+    // -----------------------------
     private void MaybeAutoSave()
     {
         if (modificationCounter >= SaveEveryNModifications)
@@ -178,46 +194,85 @@ public class ChunkedWorldArchive
     private void SaveChunkToDisk(int x, int z, Chunk chunk)
     {
         string path = ChunkPath(x, z);
-        if (chunk.IsEmpty)
+
+        // Never delete during gameplay; always persist current state (even empty)
+        // Use temp file + atomic replacement, with a global lock to serialize writes
+        lock (FileIoLock)
         {
-            if (File.Exists(path))
-                File.Delete(path);
-        }
-        else
-        {
-            File.WriteAllText(path, JsonUtility.ToJson(chunk));
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+            string json = JsonUtility.ToJson(chunk);
+            string tmpPath = path + ".tmp";
+
+            // Write to temp file with no sharing
+            using (var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            using (var sw = new StreamWriter(fs))
+            {
+                sw.Write(json);
+                sw.Flush();
+                fs.Flush(true); // ensure data hits disk
+            }
+
+            // Replace target atomically if possible
+            try
+            {
+                if (File.Exists(path))
+                {
+                    // On some Unity/.NET profiles File.Replace may not exist; fallback safely
+#if NETSTANDARD || NET_4_6 || NET_4_6_1 || NET_4_7 || NET_4_7_1
+                    File.Replace(tmpPath, path, null);
+#else
+                    // Fallback: delete then move
+                    File.Delete(path);
+                    File.Move(tmpPath, path);
+#endif
+                }
+                else
+                {
+                    File.Move(tmpPath, path);
+                }
+            }
+            catch (IOException)
+            {
+                // final fallback: copy over and delete temp (helps if antivirus scans lock target)
+                try
+                {
+                    File.Copy(tmpPath, path, true);
+                }
+                finally
+                {
+                    if (File.Exists(tmpPath)) File.Delete(tmpPath);
+                }
+            }
+            catch
+            {
+                if (File.Exists(tmpPath)) File.Delete(tmpPath);
+                throw;
+            }
         }
     }
 
     private Chunk LoadChunkFromDisk(int x, int z)
     {
         string path = ChunkPath(x, z);
-        return JsonUtility.FromJson<Chunk>(File.ReadAllText(path));
+        lock (FileIoLock)
+        {
+            // Allow others to read while we read; our global lock prevents our own overlapping writes
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var sr = new StreamReader(fs))
+            {
+                var json = sr.ReadToEnd();
+                var chunk = JsonUtility.FromJson<Chunk>(json);
+                if (chunk == null) chunk = new Chunk(x, z); // guard corrupted/empty file
+                return chunk;
+            }
+        }
     }
 
     private void OnAppQuit()
     {
-        if (!hasManualSave)
-        {
-            // Delete entire seed folder if user never saved manually
-            var seedFolder = Directory.GetParent(saveFolder)?.FullName;
-            if (!string.IsNullOrEmpty(seedFolder) && Directory.Exists(seedFolder))
-            {
-                try
-                {
-                    Directory.Delete(seedFolder, true);
-                    Debug.Log($"[Archive] Deleted unsaved world at {seedFolder}");
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning($"[Archive] Failed to delete unsaved world: {e}");
-                }
-            }
-        }
-        else
-        {
-            SaveAll();
-        }
+        // Never delete the world folder on quit; just save pending data.
+        SaveAll();
     }
 }
 

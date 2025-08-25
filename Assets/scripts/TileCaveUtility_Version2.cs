@@ -39,18 +39,22 @@ public class TileCaveUtility : MonoBehaviour
     public int surfaceDepth = 100; // Caves only spawn below surfaceY - surfaceDepth
 
     [Header("Cave Entrance Controls")]
-    [Tooltip("Number of entrances per chunk (average). Higher = more entrances across the map.")]
+    [Tooltip("Chance for a column to have a cave entrance (0-1)")]
     [Range(0f, 1f)]
     public float caveEntranceChance = 0.3f;
-    [Tooltip("How much cave entrances zigzag (0 = straight down, higher = more zigzag/sideways)")]
+    [Tooltip("How much cave entrances zigzag (0 = straight, higher = more zigzag/sideways)")]
     [Range(0f, 2f)]
     public float caveEntranceZigzag = 1.0f;
-    [Tooltip("How wide cave entrances are (in tiles, 2 = fairly wide, 4 = very wide)")]
-    [Range(1, 8)]
-    public int caveEntranceWidth = 3;
+    [Tooltip("How wide cave entrances are (in tiles, 2 = minimum allowed)")]
+    [Range(2, 8)]
+    public int caveEntranceWidth = 2;
 
     public int caveEntranceAbove = 10;
     public int caveEntranceBelow = 20;
+
+    // END points for left and right cave exits at the cave bottom
+    public int caveExitYOffset = 50; // vertical drop before exit
+    public int caveExitXOffset = 60; // horizontal offset from start x (left/right)
 
     [Header("Tile Assets")]
     public TileBase visibleCaveTileAsset;
@@ -69,41 +73,61 @@ public class TileCaveUtility : MonoBehaviour
     /// </summary>
     public bool IsCaveAt(int x, int y, int z, int surfaceY)
     {
-        return IsCaveEntrance(x, y, z, surfaceY) || CaveGenerator(x, y, z, surfaceY) > caveThreshold;
+        // Check horizontally for entrance
+        for (int dx = -caveEntranceWidth / 2; dx <= caveEntranceWidth / 2; dx++)
+        {
+            // Check vertically for entrance (ensuring at least 2 tiles high)
+            if (IsCaveEntranceSingle(x + dx, y, z, surfaceY) &&
+                (IsCaveEntranceSingle(x + dx, y + 1, z, surfaceY) || IsCaveEntranceSingle(x + dx, y - 1, z, surfaceY)))
+            {
+                return true;
+            }
+        }
+        // Otherwise, check for regular cave
+        return CaveGenerator(x, y, z, surfaceY) > caveThreshold;
     }
 
     /// <summary>
-    /// Returns true if this (x, y, z) is part of a cave entrance from 10 above to 20 below surface.
-    /// Entrances are wider, zigzag, and have a per-column chance to appear.
+    /// Returns true if (x, y, z) is along a sloped/zigzag cave entrance from surface to a distant left or right bottom exit.
+    /// Entrances start horizontal, then curve/zigzag toward a far left or right point at the bottom.
+    /// This checks only a single position (for multi-tile entrances, IsCaveAt does the band check).
     /// </summary>
-    public bool IsCaveEntrance(int x, int y, int z, int surfaceY)
+    public bool IsCaveEntranceSingle(int x, int y, int z, int surfaceY)
     {
         int entranceTop = surfaceY + caveEntranceAbove;
         int entranceBottom = surfaceY - caveEntranceBelow;
-        if (y > entranceTop || y < entranceBottom) return false;
+        if (y > entranceTop || y < entranceBottom - caveExitYOffset) return false;
 
-        // Each (x,z) column gets a stable, repeatable chance for an entrance, controlled by caveEntranceChance.
+        // Stable PRNG per column
         int entranceSeed = x * 73856093 ^ z * 19349663;
         System.Random entranceRand = new System.Random(entranceSeed);
 
-        // Stable PRNG for repeatable per-column entrances
         if (entranceRand.NextDouble() >= caveEntranceChance)
             return false;
 
-        // The entrance gets a base center x, with smooth zigzag/diagonal drift as it goes down
-        float baseSlope = Mathf.Lerp(-0.5f, 0.5f, (float)entranceRand.NextDouble()); // some diagonal drift
-        float centerX = x + baseSlope * (y - entranceTop);
+        // Pick left or right as the cave exit for this entrance (random for each entrance column)
+        bool exitLeft = entranceRand.NextDouble() < 0.5;
 
-        // Add sine-based zigzag on top of drift, so the entrance is not straight down
-        float zigzag = Mathf.Sin((y - entranceTop) * 0.4f + entranceSeed) * caveEntranceZigzag * (caveEntranceBelow + caveEntranceAbove) * 0.5f;
-        centerX += zigzag;
+        // The Y coordinate of the bottom exit
+        int exitY = entranceBottom - caveExitYOffset;
+        // The X coordinate of the bottom exit
+        int exitX = x + (exitLeft ? -caveExitXOffset : caveExitXOffset);
+
+        // Parametric t for [entranceTop ... exitY]
+        float t = Mathf.InverseLerp(entranceTop, exitY, y);
+        // Path follows a curve from start (x, entranceTop) to (exitX, exitY)
+        float curvePower = 1.7f; // Controls how long it stays horizontal
+        float curvedT = Mathf.Pow(t, curvePower);
+
+        // Calculate the "ideal" X along the entrance path at this Y
+        float idealX = Mathf.Lerp(x, exitX, curvedT);
+
+        // Zigzag/curvy modulation (sine based, large amplitude for visible zigzag)
+        float zigzag = Mathf.Sin((y - entranceTop) * 0.7f + entranceSeed) * caveEntranceZigzag * (caveEntranceBelow + caveEntranceAbove + caveExitYOffset) * 0.45f * Mathf.Clamp01(t + 0.1f);
+        float centerX = idealX + zigzag;
 
         // Entrances are wide bands, not just a single tile
-        if (Mathf.Abs(x - centerX) <= (caveEntranceWidth / 2f))
-        {
-            return true;
-        }
-        return false;
+        return Mathf.Abs(x - centerX) <= (caveEntranceWidth / 2f);
     }
 
     /// <summary>
