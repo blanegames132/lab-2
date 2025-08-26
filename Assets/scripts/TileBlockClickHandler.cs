@@ -47,6 +47,7 @@ public class TileBlockClickHandler : MonoBehaviour
                         return;
                     }
                     cameraSpawner.DeleteTile(clickedCell);
+                    cameraSpawner.RefreshGroundTile(clickedCell); // Ensure visual update from spawner
                     Debug.Log("block added to inventory");
                 }
             }

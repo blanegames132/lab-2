@@ -134,6 +134,9 @@ GameObject:
   - component: {fileID: 127414191}
   - component: {fileID: 127414192}
   - component: {fileID: 127414193}
+  - component: {fileID: 127414194}
+  - component: {fileID: 127414195}
+  - component: {fileID: 127414197}
   m_Layer: 0
   m_Name: tilemanager
   m_TagString: Untagged
@@ -242,7 +245,43 @@ MonoBehaviour:
   usedSeedString: 
   hillCurve:
     serializedVersion: 2
-    m_Curve: []
+    m_Curve:
+    - serializedVersion: 3
+      time: 0.5697546
+      value: 0.54724073
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 136
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.58983207
+      value: 0.5556137
+      inSlope: 0.38190103
+      outSlope: 0.38190103
+      tangentMode: 136
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.60426074
+      value: 0.56041867
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 136
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.651743
+      value: 0.54590863
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 136
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
@@ -259,8 +298,6 @@ MonoBehaviour:
   middleFrontTilemap: {fileID: 1899764065}
   middleBackTilemap: {fileID: 854121014}
   backTilemap: {fileID: 840299867}
-  groundTileAsset: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
-  grassTileAsset: {fileID: 11400000, guid: a621ef32daeab7040bd5ffe8291402a3, type: 2}
   hideTileAsset: {fileID: 0}
   playerTransform: {fileID: 892277581}
   buffer: 2
@@ -277,13 +314,13 @@ MonoBehaviour:
     zSpacing: 2
   biomes:
   - name: 
+    surfaceTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+    groundTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  - name: 
     surfaceTile: {fileID: 11400000, guid: 3f5069fe6ff5cc046819ee049347ef17, type: 2}
     groundTile: {fileID: 11400000, guid: e566a846a95a6274aa3495dc34075623, type: 2}
-  - name: 
-    surfaceTile: {fileID: 11400000, guid: a621ef32daeab7040bd5ffe8291402a3, type: 2}
-    groundTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   caveUtility: {fileID: 127414193}
-  repeatRange: 16
+  repeatRange: 0
   curveShift: -0.4414236
   perlinOffsetX: 87.81698
   perlinOffsetZ: 82.680176
@@ -291,8 +328,8 @@ MonoBehaviour:
   perlinBase: 0.9778771
   worldBottomY: -286
   ChunkSize: 16
-  ChunksVisible: 3
-  ChunksGenerated: 6
+  ChunksVisible: 20
+  ChunksGenerated: 100
   tileHiddenSet: {fileID: 127414189}
   midFrontTileHiddenSet: {fileID: 127414191}
 --- !u!114 &127414193
@@ -327,12 +364,55 @@ MonoBehaviour:
   caveEntranceBelow: 20
   caveExitYOffset: 50
   caveExitXOffset: 60
-  visibleCaveTileAsset: {fileID: 0}
+  visibleCaveTileAsset: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
   minX: -100
   maxX: 100
   minY: -120
   maxY: 30
   z: 0
+--- !u!114 &127414194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1bb8b6c875419044ab33c35a20c13cb6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &127414195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00bdada17c5d5034f939787cdbbd1a50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  seedString: 
+  tileSpawner: {fileID: 127414192}
+  MaxChunksInMemory: 71
+  UnloadBeyondChunks: 45
+  SaveEveryNModifications: 1
+  modificationCounter: 0
+--- !u!114 &127414197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f90eb6e887cbac94587bd0f5296cff98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hillHeight: 10
 --- !u!1 &139177888
 GameObject:
   m_ObjectHideFlags: 0
@@ -388,9 +468,12 @@ MonoBehaviour:
   tileHiddenSet: {fileID: 127414189}
   mainCamera: {fileID: 519420031}
   fogColor: {r: 1, g: 0, b: 0, a: 0.6}
-  enableHideLogic: 0
-  hideIfNextToAir: 0
+  enableHideLogic: 1
+  hideIfNextToAir: 1
   cameraBuffer: 5
+  maxTilesPerFrame: 12
+  updateInterval: 0.2
+  fogRadius: 16
 --- !u!114 &139177891
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -686,89 +769,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   referenceTransform: {fileID: 892277581}
   zOffset: -20
---- !u!1 &359322932
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 359322934}
-  - component: {fileID: 359322935}
-  - component: {fileID: 359322938}
-  - component: {fileID: 359322937}
-  - component: {fileID: 359322936}
-  m_Layer: 0
-  m_Name: fog
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &359322934
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 359322932}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 512.45807, y: 0, z: 119.48908}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &359322935
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 359322932}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 09825a01af2cf16418d8f1ad221dddf5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &359322936
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 359322932}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 449351ac53e97eb44afbc7bdc2979325, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &359322937
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 359322932}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0a59f710a2cb26645aefef268ab19a8d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &359322938
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 359322932}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe86b810b533bf94aa496f281f035ed5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &399802575
 GameObject:
   m_ObjectHideFlags: 0
@@ -782,7 +782,6 @@ GameObject:
   - component: {fileID: 399802580}
   - component: {fileID: 399802579}
   - component: {fileID: 399802578}
-  - component: {fileID: 399802577}
   m_Layer: 0
   m_Name: fog (5)
   m_TagString: Untagged
@@ -805,28 +804,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1458690251}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &399802577
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 399802575}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 29914693e5402ac4e91f1bafa745133e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetTilemap: {fileID: 840299867}
-  fogTilemap: {fileID: 399802581}
-  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
-  worldSpawner: {fileID: 127414192}
-  tileHiddenSet: {fileID: 127414189}
-  mainCamera: {fileID: 519420031}
-  fogColor: {r: 0, g: 0.09705353, b: 1, a: 0.6}
-  enableHideLogic: 0
-  hideIfNextToAir: 0
-  cameraBuffer: 5
 --- !u!114 &399802578
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1831,8 +1808,9 @@ GameObject:
   - component: {fileID: 892277590}
   - component: {fileID: 892277592}
   - component: {fileID: 892277596}
-  - component: {fileID: 892277597}
   - component: {fileID: 892277598}
+  - component: {fileID: 892277599}
+  - component: {fileID: 892277600}
   m_Layer: 7
   m_Name: player
   m_TagString: Player
@@ -2044,7 +2022,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8e10c165982743458c650ed7303ec58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialShotVelocity: {x: 5, y: 0}
+  initialShotVelocity: {x: 40, y: 2}
   bullet: {fileID: 3560360957326050748, guid: d6d80ee014b0f974795a6489d1f278ac, type: 3}
   firePoint: {fileID: 1252756430}
 --- !u!114 &892277589
@@ -2074,7 +2052,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e53952188c60a2a4ba4d312440fdb007, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawner: {fileID: 0}
+  spawner: {fileID: 127414192}
 --- !u!114 &892277592
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2093,7 +2071,7 @@ MonoBehaviour:
   rightRunSpeed: 16
   jumpForce: 5
   player: {fileID: 892277583}
-  animatorController: {fileID: 0}
+  animatorController: {fileID: 892277589}
   isGrounded: 0
 --- !u!114 &892277596
 MonoBehaviour:
@@ -2107,7 +2085,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cb4a8ee7ed18654bae043af7ea3998c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &892277597
+--- !u!114 &892277598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 892277579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f803c4be5ed330648ac72d61ad0f2084, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &892277599
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2122,13 +2112,13 @@ MonoBehaviour:
   zMoveAmount: 0.1
   zMoveMode: 0
   middleBackTilemap: {fileID: 854121014}
-  backTilemap: {fileID: 840299867}
+  middlefrontTilemap: {fileID: 1899764065}
   zCheckDistance: 1
   spawner: {fileID: 127414192}
   debugLogging: 1
   showZBlockStateRepeatedly: 0
   statusLogInterval: 1
---- !u!114 &892277598
+--- !u!114 &892277600
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2137,9 +2127,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 892277579}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f803c4be5ed330648ac72d61ad0f2084, type: 3}
+  m_Script: {fileID: 11500000, guid: 5d34344b4e8c51e4e9b80929558b288a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  tilemapsToIgnore:
+  - {fileID: 2050080548}
+  - {fileID: 854121014}
+  - {fileID: 1899764065}
+  - {fileID: 840299867}
+  ignoreOnStart: 1
 --- !u!1 &1064781976
 GameObject:
   m_ObjectHideFlags: 0
@@ -2170,9 +2166,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyPrefab: {fileID: 3685190898768921614, guid: ec33a7642bc1ea642b719cc749fb8639, type: 3}
-  spawner: {fileID: 127414192}
+  spawner: {fileID: 0}
   playerTransform: {fileID: 892277581}
-  spawnChance: 0.274
+  spawnChance: 0.204
   maxEnemies: 20
   spawnZBand: 2
   spawnLeftMinX: -20
@@ -2184,7 +2180,7 @@ MonoBehaviour:
   despawnRightTimerX: 20
   despawnRightAbsX: 30
   despawnZBand: 2
-  despawnTimer: 20
+  despawnTimer: 10000
 --- !u!4 &1064781978
 Transform:
   m_ObjectHideFlags: 0
@@ -2213,7 +2209,6 @@ GameObject:
   - component: {fileID: 1110901131}
   - component: {fileID: 1110901130}
   - component: {fileID: 1110901129}
-  - component: {fileID: 1110901128}
   m_Layer: 0
   m_Name: fog (6)
   m_TagString: Untagged
@@ -2236,28 +2231,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1458690251}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1110901128
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1110901126}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 29914693e5402ac4e91f1bafa745133e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetTilemap: {fileID: 854121014}
-  fogTilemap: {fileID: 1110901132}
-  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
-  worldSpawner: {fileID: 127414192}
-  tileHiddenSet: {fileID: 127414189}
-  mainCamera: {fileID: 519420031}
-  fogColor: {r: 0.09492421, g: 1, b: 0, a: 0.6}
-  enableHideLogic: 0
-  hideIfNextToAir: 0
-  cameraBuffer: 5
 --- !u!114 &1110901129
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3121,7 +3094,6 @@ GameObject:
   - component: {fileID: 2016733400}
   - component: {fileID: 2016733399}
   - component: {fileID: 2016733398}
-  - component: {fileID: 2016733397}
   m_Layer: 0
   m_Name: fog (8)
   m_TagString: Untagged
@@ -3144,28 +3116,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1458690251}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2016733397
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2016733395}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 29914693e5402ac4e91f1bafa745133e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetTilemap: {fileID: 1899764065}
-  fogTilemap: {fileID: 2016733401}
-  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
-  worldSpawner: {fileID: 127414192}
-  tileHiddenSet: {fileID: 127414189}
-  mainCamera: {fileID: 519420031}
-  fogColor: {r: 1, g: 0, b: 0.6552448, a: 0.6}
-  enableHideLogic: 0
-  hideIfNextToAir: 0
-  cameraBuffer: 5
 --- !u!114 &2016733398
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3475,4 +3425,3 @@ SceneRoots:
   - {fileID: 1365041806}
   - {fileID: 1980366263}
   - {fileID: 1064781978}
-  - {fileID: 359322934}

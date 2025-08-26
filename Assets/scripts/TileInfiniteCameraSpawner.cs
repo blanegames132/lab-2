@@ -49,8 +49,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] public Tilemap middleFrontTilemap;
     [SerializeField] public Tilemap middleBackTilemap;
     [SerializeField] public Tilemap backTilemap;
-    [SerializeField] public TileBase groundTileAsset;
-    [SerializeField] public TileBase grassTileAsset;
+
     [SerializeField] public TileBase hideTileAsset;
     [SerializeField] public Transform playerTransform;
     [SerializeField] public int buffer = 2;
@@ -85,7 +84,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] private int worldBottomY = -100;
 
     [Header("Chunk Settings")]
-    [SerializeField] private int ChunkSize = 16;
+    [SerializeField] public int ChunkSize = 16;
     [SerializeField] private int ChunksVisible = 3;
     [SerializeField] private int ChunksGenerated = 6;
 
@@ -246,7 +245,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         }
     }
 
-    private int GetChunkBiome(int chunkX, int z)
+     public int GetChunkBiome(int chunkX, int z)
     {
         Vector2Int key = new Vector2Int(chunkX, z);
         if (!chunkBiomes.TryGetValue(key, out int biomeIndex))
@@ -261,14 +260,14 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     private TileBase GetSurfaceTileAsset(Vector3Int pos, int biomeIndex)
     {
         if (biomeIndex < 0 || biomeIndex >= biomes.Count)
-            return grassTileAsset;
+            return null; // No biome, no tile
         return biomes[biomeIndex].surfaceTile;
     }
 
     private TileBase GetGroundTileAsset(int biomeIndex)
     {
         if (biomeIndex < 0 || biomeIndex >= biomes.Count)
-            return groundTileAsset;
+            return null; // No biome, no tile
         return biomes[biomeIndex].groundTile;
     }
 
@@ -724,20 +723,42 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     }
     public void DeleteTile(Vector3Int pos)
     {
-        deletedTiles.Add(pos);
-        if (groundTilemap != null) groundTilemap.SetTile(pos, null);
-        if (frontTilemap != null) frontTilemap.SetTile(pos, null);
-        if (middleFrontTilemap != null) middleFrontTilemap.SetTile(pos, null);
-        if (middleBackTilemap != null) middleBackTilemap.SetTile(pos, null);
-        if (backTilemap != null) backTilemap.SetTile(pos, null);
+        // Only remove from the ground layer tilemap
+        if (groundTilemap != null)
+            groundTilemap.SetTile(pos, null);
 
+        // Remove from archive if enabled
         if (enableWorldArchive && worldArchive != null)
             worldArchive.RemoveTile(pos);
+
+        // Track as deleted for this session
+        deletedTiles.Add(pos);
     }
     public void SaveGame()
     {
         if (enableWorldArchive && worldArchive != null)
             worldArchive.SaveAll();
+    }
+    public void RefreshGroundTile(Vector3Int pos)
+    {
+        // Determine biome
+        int biomeIndex = GetChunkBiome(pos.x / ChunkSize, pos.z);
+
+        // Get correct tile type from archive or biome
+        TileData tileData = (enableWorldArchive && worldArchive != null) ? worldArchive.TryGetTile(pos) : null;
+        TileBase tile = null;
+        if (tileData != null)
+        {
+            if (tileData.type == TileType.Grass)
+                tile = GetSurfaceTileAsset(pos, biomeIndex);
+            else if (tileData.type == TileType.Dirt)
+                tile = GetGroundTileAsset(biomeIndex);
+            // else Air/null
+        }
+
+        // Actually set the tile
+        if (groundTilemap != null)
+            groundTilemap.SetTile(pos, tile);
     }
     public TileType GetTileTypeForFog(Vector3Int pos, TileType fallback)
     {
