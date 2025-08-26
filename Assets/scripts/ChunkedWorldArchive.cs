@@ -26,12 +26,27 @@ public class ChunkedWorldArchive
 
     // Global file I/O lock to serialize ALL reads/writes across the process
     private static readonly object FileIoLock = new object();
+    private Dictionary<Vector2Int, int> chunkBiomes = new Dictionary<Vector2Int, int>();
+    // If your type is different, use it.
 
+    // ... your existing constructor and methods ...
+
+    public bool HasChunk(Vector2Int key)
+    {
+        return chunkBiomes.ContainsKey(key);
+    }
     public ChunkedWorldArchive(string seed)
     {
+        // Use Path.Combine for cross-platform compatibility
         string baseFolder = Path.Combine(Application.persistentDataPath, "mygame");
-        saveFolder = Path.Combine(baseFolder, "WorldSaves", seed, "chunks");
-        Directory.CreateDirectory(saveFolder);
+        string worldFolder = Path.Combine(baseFolder, "WorldSaves", seed);
+        saveFolder = Path.Combine(worldFolder, "chunks");
+
+        // Ensure all directories exist
+        if (!Directory.Exists(saveFolder))
+            Directory.CreateDirectory(saveFolder);
+
+        // Register application quit event to save on exit
         Application.quitting += OnAppQuit;
     }
 

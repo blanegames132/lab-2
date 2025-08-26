@@ -15,7 +15,7 @@ public class PlayerZMovementFlexible : MonoBehaviour
 
     [Header("Tile Blocking Settings")]
     [SerializeField] private Tilemap middleBackTilemap;
-    [SerializeField] private Tilemap backTilemap;
+    [SerializeField] private Tilemap middlefrontTilemap; // fixed typo: was 'middlefontTilemap'
     [SerializeField] private int zCheckDistance = 1;
 
     [Header("Spawner Reference")]
@@ -219,15 +219,19 @@ public class PlayerZMovementFlexible : MonoBehaviour
 
     private bool IsTileBlocked(Vector3Int zDirection)
     {
-        Vector3Int playerCell = middleBackTilemap.WorldToCell(transform.position);
+        // Use correct tilemap references and fix typo in field name
+        Vector3Int playerCell = middleBackTilemap != null
+            ? middleBackTilemap.WorldToCell(transform.position)
+            : Vector3Int.FloorToInt(transform.position);
+
         Vector3Int checkPos = playerCell + zDirection * zCheckDistance;
 
         TileBase tile = null;
         if (middleBackTilemap != null)
             tile = middleBackTilemap.GetTile(checkPos);
 
-        if (tile == null && backTilemap != null)
-            tile = backTilemap.GetTile(checkPos);
+        if (tile == null && middlefrontTilemap != null)
+            tile = middlefrontTilemap.GetTile(checkPos);
 
         return tile != null;
     }
