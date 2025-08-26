@@ -492,7 +492,32 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         int startX = chunkX * ChunkSize;
         int endX = startX + ChunkSize - 1;
 
-        // Prepare batch lists for each tilemap in tilemapZSpacings
+        // Step 1: First pass - fill archive with cave and terrain data if not present.
+        for (int x = startX; x <= endX; x++)
+        {
+            float hillValue = GetHillValue(x, z);
+            int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
+
+            // Surface tile
+            Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
+            if (render && !deletedTiles.Contains(surfacePos))
+            {
+                ArchiveTileIfNeeded(surfacePos, x, surfaceY, z, biomeIndex, isSurface: true);
+                activeTiles.Add(surfacePos);
+            }
+            // Dirt below
+            for (int y = surfaceY - 1; y >= buildBottom; y--)
+            {
+                Vector3Int dirtPos = new Vector3Int(x, y, z);
+                if (render && !deletedTiles.Contains(dirtPos))
+                {
+                    ArchiveTileIfNeeded(dirtPos, x, y, z, biomeIndex, isSurface: false);
+                    activeTiles.Add(dirtPos);
+                }
+            }
+        }
+
+        // Step 2: Second pass - batch draw only from archive
         var positions = new List<Vector3Int>[tilemapZSpacings.Count];
         var tiles = new List<TileBase>[tilemapZSpacings.Count];
         for (int i = 0; i < tilemapZSpacings.Count; i++)
@@ -506,40 +531,78 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             float hillValue = GetHillValue(x, z);
             int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
 
-            // Surface tile
             Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
             if (render && !deletedTiles.Contains(surfacePos))
-            {
-                BatchSpawnFromArchiveOrGenerate(
-                    surfacePos, x, surfaceY, z, playerZ,
-                    GetSurfaceTileAsset(surfacePos, biomeIndex),
-                    caveUtility, biomeIndex,
-                    positions, tiles, isSurface: true
-                );
-                activeTiles.Add(surfacePos);
-            }
-            // Dirt below
+                BatchDrawFromArchive(surfacePos, z, playerZ, biomeIndex, positions, tiles);
+
             for (int y = surfaceY - 1; y >= buildBottom; y--)
             {
                 Vector3Int dirtPos = new Vector3Int(x, y, z);
                 if (render && !deletedTiles.Contains(dirtPos))
-                {
-                    BatchSpawnFromArchiveOrGenerate(
-                        dirtPos, x, y, z, playerZ,
-                        GetGroundTileAsset(biomeIndex),
-                        caveUtility, biomeIndex,
-                        positions, tiles, isSurface: false
-                    );
-                    activeTiles.Add(dirtPos);
-                }
+                    BatchDrawFromArchive(dirtPos, z, playerZ, biomeIndex, positions, tiles);
             }
         }
 
-        // Draw all tiles for each tilemap in batch
+        // Actually draw the batch
         for (int i = 0; i < tilemapZSpacings.Count; i++)
         {
             if (tilemapZSpacings[i].tilemap != null && positions[i].Count > 0)
                 tilemapZSpacings[i].tilemap.SetTiles(positions[i].ToArray(), tiles[i].ToArray());
+        }
+    }
+
+    // First pass: Fill archive with cave/terrain info if not present
+    private void ArchiveTileIfNeeded(Vector3Int pos, int x, int y, int z, int biomeIndex, bool isSurface)
+    {
+        if (!(enableWorldArchive && worldArchive != null)) return;
+        if (worldArchive.TryGetTile(pos) != null)
+            return; // Already archived
+
+        int surfaceY = GetSurfaceY(x, z);
+        bool isCave = caveUtility != null && caveUtility.IsCaveAt(x, y, z, surfaceY);
+
+        if (isCave)
+        {
+            worldArchive.SetTile(pos, new TileData { type = TileType.Air });
+        }
+        else if (isSurface)
+        {
+            worldArchive.SetTile(pos, new TileData { type = TileType.Grass });
+        }
+        else
+        {
+            worldArchive.SetTile(pos, new TileData { type = TileType.Dirt });
+        }
+    }
+
+    // Second pass: Only draw tiles if archive entry exists
+    private void BatchDrawFromArchive(
+        Vector3Int pos, int z, int playerZ, int biomeIndex,
+        List<Vector3Int>[] positions, List<TileBase>[] tiles)
+    {
+        if (!(enableWorldArchive && worldArchive != null)) return;
+
+        TileData tileData = worldArchive.TryGetTile(pos);
+        if (tileData == null) return; // Only draw if archived
+
+        TileBase resolvedTile = null;
+        if (tileData.type == TileType.Air)
+            resolvedTile = null;
+        else if (tileData.type == TileType.Grass)
+            resolvedTile = GetSurfaceTileAsset(pos, biomeIndex);
+        else // Dirt
+            resolvedTile = GetGroundTileAsset(biomeIndex);
+
+        // Find the right tilemap for current z (z spacing logic)
+        for (int i = 0; i < tilemapZSpacings.Count; i++)
+        {
+            var spacing = tilemapZSpacings[i];
+            if (spacing.tilemap != null && z == playerZ + (int)spacing.zSpacing)
+            {
+                positions[i].Add(pos);
+                tiles[i].Add(resolvedTile);
+                break;
+            }
         }
     }
 
