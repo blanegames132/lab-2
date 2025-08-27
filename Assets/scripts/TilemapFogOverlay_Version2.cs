@@ -2,11 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-/// <summary>
-/// Highly reusable, optimized tilemap fog overlay.
-/// Attach multiple times, configure each for a different tilemap overlay in the Inspector.
-/// Utility functions included.
-/// </summary>
 [DisallowMultipleComponent]
 public class TilemapFogOverlay : MonoBehaviour
 {
@@ -23,65 +18,11 @@ public class TilemapFogOverlay : MonoBehaviour
 
     [Header("Logic")]
     public bool enableHideLogic = true;
-    public bool hideIfNextToAir = true;
+    [SerializeField] private bool reverseNextToAir = false; // Independent per GameObject, private but visible in Inspector
     public int cameraBuffer = 5;
-    public int maxTilesPerFrame = 12; // Batch size for fog updates
-    public float updateInterval = 0.2f; // Minimum time between batch updates
-    public float fogRadius = 20f; // Area where fog is always present
-
-    // Utility: Overlay Z logic
-    void OverlayFogAboveTarget()
-    {
-        Vector3 targetPos = targetTilemap.transform.position;
-        Vector3 fogPos = fogTilemap.transform.position;
-        float desiredZ = targetPos.z + 0.1f;
-        if (!Mathf.Approximately(fogPos.z, desiredZ))
-            fogTilemap.transform.position = new Vector3(fogPos.x, fogPos.y, desiredZ);
-    }
-
-    // Utility: Initial full fog cover
-    void CoverAllWithFog()
-    {
-        BoundsInt bounds = targetTilemap.cellBounds;
-        foreach (var pos in bounds.allPositionsWithin)
-        {
-            if (targetTilemap.GetTile(pos) != null)
-            {
-                fogTilemap.SetTile(pos, fogTile);
-            }
-        }
-    }
-
-    // Utility: Adjacency check
-    bool IsNextToAir(Vector3Int tile)
-    {
-        if (worldSpawner == null) return false;
-        int biomeIndex = 0; // Default, replace with correct biomeIndex if needed
-        foreach (var offset in neighborOffsets)
-        {
-            Vector3Int neighborPos = tile + offset;
-            string neighborType = worldSpawner.GetTileTypeForFog(neighborPos, "ground", biomeIndex);
-            if (neighborType == "air") return true;
-        }
-        return false;
-    }
-
-    // Utility: Get all tiles within a 20 radius of a world position (not used in main)
-    HashSet<Vector3Int> TilesInRadius(Vector3 worldCenter, float radius)
-    {
-        HashSet<Vector3Int> result = new HashSet<Vector3Int>();
-        BoundsInt bounds = targetTilemap.cellBounds;
-        for (int x = bounds.xMin; x < bounds.xMax; x++)
-            for (int y = bounds.yMin; y < bounds.yMax; y++)
-                for (int z = bounds.zMin; z < bounds.zMax; z++)
-                {
-                    Vector3Int cell = new Vector3Int(x, y, z);
-                    Vector3 cellWorld = targetTilemap.CellToWorld(cell);
-                    if (Vector2.Distance(new Vector2(cellWorld.x, cellWorld.y), new Vector2(worldCenter.x, worldCenter.y)) <= radius)
-                        result.Add(cell);
-                }
-        return result;
-    }
+    public int maxTilesPerFrame = 12;
+    public float updateInterval = 0.2f;
+    public float fogRadius = 20f;
 
     private static readonly Vector3Int[] neighborOffsets = new Vector3Int[]
     {
@@ -103,8 +44,6 @@ public class TilemapFogOverlay : MonoBehaviour
             if (collider != null) collider.enabled = false;
         }
         lastCameraBounds = new BoundsInt(int.MinValue, int.MinValue, 0, 0, 0, 1);
-
-        // Initial update to draw fog
         UpdateFogOverlay();
     }
 
@@ -116,7 +55,6 @@ public class TilemapFogOverlay : MonoBehaviour
         if (cooldownTimer < updateCooldown) return;
         cooldownTimer = 0f;
 
-        // Calculate camera bounds with buffer (behind means expand by buffer)
         Vector3 camCenter = mainCamera.transform.position;
         int minX = Mathf.FloorToInt(camCenter.x - fogRadius - cameraBuffer);
         int maxX = Mathf.CeilToInt(camCenter.x + fogRadius + cameraBuffer);
@@ -124,7 +62,6 @@ public class TilemapFogOverlay : MonoBehaviour
         int maxY = Mathf.CeilToInt(camCenter.y + fogRadius + cameraBuffer);
         BoundsInt camBounds = new BoundsInt(minX, minY, 0, maxX - minX + 1, maxY - minY + 1, 1);
 
-        // Only update if camera bounds changed
         if (camBounds != lastCameraBounds)
         {
             lastCameraBounds = camBounds;
@@ -134,14 +71,12 @@ public class TilemapFogOverlay : MonoBehaviour
 
     void UpdateFogOverlay()
     {
-        // 1. Move fog tilemap to overlay just in front
         Vector3 targetPos = targetTilemap.transform.position;
         Vector3 fogPos = fogTilemap.transform.position;
         float desiredZ = targetPos.z + 0.1f;
         if (!Mathf.Approximately(fogPos.z, desiredZ))
             fogTilemap.transform.position = new Vector3(fogPos.x, fogPos.y, desiredZ);
 
-        // 2. Calculate area for fog (buffer behind radius)
         Vector3 camCenter = mainCamera.transform.position;
         int minX = Mathf.FloorToInt(camCenter.x - fogRadius - cameraBuffer);
         int maxX = Mathf.CeilToInt(camCenter.x + fogRadius + cameraBuffer);
@@ -150,14 +85,12 @@ public class TilemapFogOverlay : MonoBehaviour
 
         BoundsInt bounds = targetTilemap.cellBounds;
 
-        // 3. Build list of which tiles should have fog (all within fogRadius area!)
         HashSet<Vector3Int> newFogTiles = new HashSet<Vector3Int>();
         Vector3 srcOrigin = targetTilemap.layoutGrid.CellToWorld(Vector3Int.zero) + targetTilemap.transform.position;
         Vector3 fogOrigin = fogTilemap.layoutGrid.CellToWorld(Vector3Int.zero) + fogTilemap.transform.position;
         Vector3 worldOffset = fogOrigin - srcOrigin;
 
         HashSet<Vector3Int> toHide = tileHiddenSet ? tileHiddenSet.GetTilesToHide(targetTilemap.transform.position) : new HashSet<Vector3Int>();
-        int biomeIndex = 0; // Default, replace if you have biome logic for this overlay
         for (int x = Mathf.Max(bounds.xMin, minX); x <= Mathf.Min(bounds.xMax - 1, maxX); x++)
             for (int y = Mathf.Max(bounds.yMin, minY); y <= Mathf.Min(bounds.yMax - 1, maxY); y++)
                 for (int z = bounds.zMin; z < bounds.zMax; z++)
@@ -167,33 +100,42 @@ public class TilemapFogOverlay : MonoBehaviour
 
                     Vector3 worldPos = targetTilemap.CellToWorld(tile) + worldOffset;
                     float dist = Vector2.Distance(new Vector2(worldPos.x, worldPos.y), new Vector2(camCenter.x, camCenter.y));
-                    if (dist > fogRadius) continue; // Only fog inside the radius
+                    if (dist > fogRadius) continue;
 
-                    if (enableHideLogic)
-                    {
-                        // Reveal (remove fog) if tile is in the hide set, otherwise keep fog!
-                        if (toHide.Contains(tile))
-                        {
-                            continue; // Do not add fog for revealed tiles
-                        }
-                        if (hideIfNextToAir && worldSpawner != null)
-                        {
-                            bool adjacentToAir = false;
-                            foreach (var offset in neighborOffsets)
-                            {
-                                Vector3Int neighborPos = tile + offset;
-                                string neighborType = worldSpawner.GetTileTypeForFog(neighborPos, "ground", biomeIndex);
-                                if (neighborType == "air") { adjacentToAir = true; break; }
-                            }
-                            if (adjacentToAir) continue; // Reveal if adjacent to air
-                        }
-                    }
+                    if (enableHideLogic && toHide.Contains(tile)) continue;
 
                     Vector3Int fogCell = fogTilemap.WorldToCell(worldPos);
                     newFogTiles.Add(fogCell);
                 }
 
-        // 4. Remove fog from old, add to new only if changed (delta update)
+        // --- Only remove tiles next to air if toggle is OFF ---
+        if (!reverseNextToAir)
+        {
+            var tilesToRemove = new List<Vector3Int>();
+            foreach (var tile in newFogTiles)
+            {
+                bool isNextToAir = false;
+                foreach (var offset in neighborOffsets)
+                {
+                    Vector3Int neighborPos = tile + offset;
+                    if (targetTilemap.GetTile(neighborPos) == null)
+                    {
+                        isNextToAir = true;
+                        break;
+                    }
+                }
+                if (isNextToAir)
+                {
+                    tilesToRemove.Add(tile);
+                }
+            }
+            foreach (var tile in tilesToRemove)
+            {
+                newFogTiles.Remove(tile);
+            }
+        }
+        // If reverseNextToAir is ON, nothing is removed. Everything stays overlayed.
+
         foreach (var pos in fogTilesSet)
         {
             if (!newFogTiles.Contains(pos))
