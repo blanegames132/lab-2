@@ -2,7 +2,8 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 
 /// <summary>
-/// Handles clicking on tilemap blocks and removing them from both RAM and the persistent archive.
+/// Handles clicking on tilemap blocks and removing the single clicked tile (except bedrock)
+/// from the ground tilemap and persistent archive.
 /// </summary>
 public class TileBlockClickHandler : MonoBehaviour
 {
@@ -24,14 +25,11 @@ public class TileBlockClickHandler : MonoBehaviour
             Vector3 clickCellPos = new Vector3(mouseWorldPos.x, mouseWorldPos.y, playerTransform.position.z);
             Vector3Int clickedCell = groundTilemap.WorldToCell(clickCellPos);
 
-            // Calculate player cell position at player's current z
+            // Distance check
             Vector3 playerCellCenter = groundTilemap.CellToWorld(groundTilemap.WorldToCell(playerTransform.position));
             playerCellCenter.z = playerTransform.position.z;
-
-            // Calculate distance from player to clicked cell center
             Vector3 clickedCellCenter = groundTilemap.CellToWorld(clickedCell);
-            clickedCellCenter.z = playerTransform.position.z; // Project to player's z
-
+            clickedCellCenter.z = playerTransform.position.z;
             float dist = Vector2.Distance(
                 new Vector2(playerCellCenter.x, playerCellCenter.y),
                 new Vector2(clickedCellCenter.x, clickedCellCenter.y)
@@ -46,9 +44,22 @@ public class TileBlockClickHandler : MonoBehaviour
                         Debug.LogWarning("cameraSpawner is not set on TileBlockClickHandler!");
                         return;
                     }
-                    cameraSpawner.DeleteTile(clickedCell);
-                    cameraSpawner.RefreshGroundTile(clickedCell); // Ensure visual update from spawner
-                    Debug.Log("block added to inventory");
+
+                    // Check if clicked tile is bedrock
+                    int biomeIndex = cameraSpawner.GetChunkBiome(clickedCell.x / cameraSpawner.ChunkSize, clickedCell.z);
+                    string tag = cameraSpawner.enableWorldArchive
+                        ? cameraSpawner.GetTileTagForFog(clickedCell, null, biomeIndex)
+                        : null;
+
+                    if (tag == null || !tag.StartsWith("bedrock", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        cameraSpawner.DeleteTile(clickedCell);
+                        Debug.Log($"Deleted tile at {clickedCell} (not bedrock)");
+                    }
+                    else
+                    {
+                        Debug.Log("Cannot delete bedrock tile!");
+                    }
                 }
             }
         }

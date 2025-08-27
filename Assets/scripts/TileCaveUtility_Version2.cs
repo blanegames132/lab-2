@@ -59,9 +59,16 @@ public class TileCaveUtility : MonoBehaviour
     [Header("Tile Assets")]
     public TileBase visibleCaveTileAsset;
 
+    [Tooltip("Tilemap to spawn cave assets into. Assign in Inspector.")]
+    public Tilemap targetTilemap;
+    public Transform playerTransform; // Assign the player transform in Inspector
     public bool IsInitialized { get; private set; } = false;
 
     public int minX = -100, maxX = 100, minY = -120, maxY = 30, z = 0;
+
+    [Header("Debug Controls")]
+    public bool debug = true; // Toggle this in Inspector to control cave drawing/deletion
+    public int targetZLayer = 0; // Set this to match your desired z-layer for cave drawing
 
     void Awake()
     {
@@ -76,7 +83,6 @@ public class TileCaveUtility : MonoBehaviour
         // Check horizontally for entrance
         for (int dx = -caveEntranceWidth / 2; dx <= caveEntranceWidth / 2; dx++)
         {
-            // Check vertically for entrance (ensuring at least 2 tiles high)
             if (IsCaveEntranceSingle(x + dx, y, z, surfaceY) &&
                 (IsCaveEntranceSingle(x + dx, y + 1, z, surfaceY) || IsCaveEntranceSingle(x + dx, y - 1, z, surfaceY)))
             {
@@ -87,11 +93,6 @@ public class TileCaveUtility : MonoBehaviour
         return CaveGenerator(x, y, z, surfaceY) > caveThreshold;
     }
 
-    /// <summary>
-    /// Returns true if (x, y, z) is along a sloped/zigzag cave entrance from surface to a distant left or right bottom exit.
-    /// Entrances start horizontal, then curve/zigzag toward a far left or right point at the bottom.
-    /// This checks only a single position (for multi-tile entrances, IsCaveAt does the band check).
-    /// </summary>
     public bool IsCaveEntranceSingle(int x, int y, int z, int surfaceY)
     {
         int entranceTop = surfaceY + caveEntranceAbove;
@@ -115,25 +116,17 @@ public class TileCaveUtility : MonoBehaviour
 
         // Parametric t for [entranceTop ... exitY]
         float t = Mathf.InverseLerp(entranceTop, exitY, y);
-        // Path follows a curve from start (x, entranceTop) to (exitX, exitY)
         float curvePower = 1.7f; // Controls how long it stays horizontal
         float curvedT = Mathf.Pow(t, curvePower);
 
-        // Calculate the "ideal" X along the entrance path at this Y
         float idealX = Mathf.Lerp(x, exitX, curvedT);
 
-        // Zigzag/curvy modulation (sine based, large amplitude for visible zigzag)
         float zigzag = Mathf.Sin((y - entranceTop) * 0.7f + entranceSeed) * caveEntranceZigzag * (caveEntranceBelow + caveEntranceAbove + caveExitYOffset) * 0.45f * Mathf.Clamp01(t + 0.1f);
         float centerX = idealX + zigzag;
 
-        // Entrances are wide bands, not just a single tile
         return Mathf.Abs(x - centerX) <= (caveEntranceWidth / 2f);
     }
 
-    /// <summary>
-    /// Returns a cave noise sample at x, y, z, using the provided surfaceY for this column.
-    /// Only deep caves: caves spawn only below (surfaceY - surfaceDepth).
-    /// </summary>
     public float CaveGenerator(int x, int y, int z, int surfaceY)
     {
         int caveStartY = surfaceY - surfaceDepth;
@@ -141,7 +134,6 @@ public class TileCaveUtility : MonoBehaviour
         if (y > caveStartY)
             return 0f;
 
-        // --- Curviness/warping ---
         float xCurve = x;
         float yCurve = y;
         if (caveCurve != 0f)
@@ -150,7 +142,6 @@ public class TileCaveUtility : MonoBehaviour
             yCurve += Mathf.Sin(x * 0.1f + 100f) * caveCurve * 10f;
         }
 
-        // --- Main noise, with stretching ---
         float fx = xCurve * caveFrequency * caveHorizontalMultiplier;
         float fy = yCurve * caveFrequency * caveVerticalMultiplier;
         float fz = z * caveFrequency * 0.7f;
@@ -160,7 +151,6 @@ public class TileCaveUtility : MonoBehaviour
         float noiseZX = Mathf.PerlinNoise(fz, fx);
         float noise = (noiseXY + noiseYZ + noiseZX) / 3f;
 
-        // --- Secondary noise layer ---
         if (secondaryFrequency > 0f && secondaryWeight > 0f)
         {
             float sfx = xCurve * secondaryFrequency * caveHorizontalMultiplier;
@@ -173,11 +163,9 @@ public class TileCaveUtility : MonoBehaviour
             noise = Mathf.Lerp(noise, snoise, secondaryWeight);
         }
 
-        // --- Sharpness adjustment ---
         if (caveSharpness != 1f)
             noise = Mathf.Pow(noise, caveSharpness);
 
-        // --- Vertical bias (more caves at top/bottom) ---
         if (verticalBiasStrength > 0f && verticalBias != 0f)
         {
             float yNorm = Mathf.InverseLerp(minY, caveStartY, y) * 2 - 1;
@@ -185,7 +173,6 @@ public class TileCaveUtility : MonoBehaviour
             noise = Mathf.Lerp(noise, noise * bias, verticalBiasStrength);
         }
 
-        // --- Vertical scale (caves get thinner/thicker as you go down) ---
         if (caveVerticalScale != 0f)
         {
             float yNormalized = Mathf.InverseLerp(minY, caveStartY, y);
@@ -193,7 +180,6 @@ public class TileCaveUtility : MonoBehaviour
             noise *= scale;
         }
 
-        // --- Horizontal scale (caves get thinner/thicker as you go sideways) ---
         if (caveHorizontalScale != 0f)
         {
             float xNormalized = Mathf.InverseLerp(minX, maxX, x);
@@ -205,29 +191,103 @@ public class TileCaveUtility : MonoBehaviour
     }
 
     /// <summary>
-    /// Fills the tilemap with caves using the noise function and caveThreshold.
-    /// This will always spawn cave tiles where a cave is present and clear non-cave tiles, so cave has priority.
+    /// Spawn or delete cave asset at a grid position depending on debug and z-layer.
     /// </summary>
-    public void GenerateCaves(Tilemap tilemap, System.Func<int, int, int> getSurfaceY)
+    public void HandleCaveAsset(Vector3Int gridPosition)
     {
-        Vector3Int pos = new Vector3Int();
-        for (int x = minX; x <= maxX; x++)
+        if (visibleCaveTileAsset == null)
         {
-            for (int z = 0; z < 1; z++)
+            UnityEngine.Debug.LogError("TileCaveUtility: No cave tile asset assigned in Inspector.");
+            return;
+        }
+        if (targetTilemap == null)
+        {
+            UnityEngine.Debug.LogError("TileCaveUtility: No target Tilemap assigned in Inspector.");
+            return;
+        }
+        // Only handle tiles on the correct z-layer
+        if (gridPosition.z != targetZLayer)
+        {
+            // If not on the correct z, always delete any cave tile here
+            targetTilemap.SetTile(gridPosition, null);
+            targetTilemap.SetTile(gridPosition + Vector3Int.up, null);
+            targetTilemap.SetTile(gridPosition + Vector3Int.down, null);
+            targetTilemap.SetTile(gridPosition + Vector3Int.left, null);
+            targetTilemap.SetTile(gridPosition + Vector3Int.right, null);
+            return;
+        }
+        if (!debug)
+        {
+            // Debug off: delete cave tile
+            targetTilemap.SetTile(gridPosition, null);
+            targetTilemap.SetTile(gridPosition + Vector3Int.up, null);
+            targetTilemap.SetTile(gridPosition + Vector3Int.down, null);
+            targetTilemap.SetTile(gridPosition + Vector3Int.left, null);
+            targetTilemap.SetTile(gridPosition + Vector3Int.right, null);
+            return;
+        }
+        // Debug on and z matches: spawn cave tile
+        targetTilemap.SetTile(gridPosition, visibleCaveTileAsset);
+        targetTilemap.SetTile(gridPosition + Vector3Int.up, visibleCaveTileAsset);
+        targetTilemap.SetTile(gridPosition + Vector3Int.down, visibleCaveTileAsset);
+        targetTilemap.SetTile(gridPosition + Vector3Int.left, visibleCaveTileAsset);
+        targetTilemap.SetTile(gridPosition + Vector3Int.right, visibleCaveTileAsset);
+    }
+
+    /// <summary>
+    /// Draw cave tiles from archive, with debug/z-layer logic.
+    /// </summary>
+    public void DrawCavesFromArchive(ChunkedWorldArchive archive)
+    {
+        if (archive == null)
+        {
+            UnityEngine.Debug.LogError("TileCaveUtility: No archive provided.");
+            return;
+        }
+        if (visibleCaveTileAsset == null)
+        {
+            UnityEngine.Debug.LogError("TileCaveUtility: No cave tile asset assigned in Inspector.");
+            return;
+        }
+        if (targetTilemap == null)
+        {
+            UnityEngine.Debug.LogError("TileCaveUtility: No target Tilemap assigned in Inspector.");
+            return;
+        }
+
+        var allTiles = archive.AllTiles();
+
+        foreach (var pair in allTiles)
+        {
+            Vector3Int gridPos = pair.Key;
+            TileData tileData = pair.Value;
+
+            if (tileData != null && tileData.blockTagOrName == "cave")
             {
-                int surfaceY = getSurfaceY(x, z);
-                pos.x = x;
-                pos.z = z;
-                for (int y = minY; y <= maxY; y++)
+                HandleCaveAsset(gridPos);
+            }
+            else
+            {
+                // If not a cave, make sure to clear any cave asset here
+                if (gridPos.z == targetZLayer)
                 {
-                    pos.y = y;
-                    bool cave = IsCaveAt(x, y, z, surfaceY);
-                    if (cave)
-                        tilemap.SetTile(pos, visibleCaveTileAsset); // Always set cave tile if cave or entrance
-                    else
-                        tilemap.SetTile(pos, null); // Always clear to air if not a cave
+                    targetTilemap.SetTile(gridPos, null);
+                    targetTilemap.SetTile(gridPos + Vector3Int.up, null);
+                    targetTilemap.SetTile(gridPos + Vector3Int.down, null);
+                    targetTilemap.SetTile(gridPos + Vector3Int.left, null);
+                    targetTilemap.SetTile(gridPos + Vector3Int.right, null);
                 }
             }
+        }
+    }
+
+    void Update()
+    {
+        if (playerTransform != null)
+        {
+            DrawCavesFromArchive(new ChunkedWorldArchive("default"));
+            // Optionally test at origin:
+            HandleCaveAsset(new Vector3Int(0, 0, targetZLayer));
         }
     }
 }

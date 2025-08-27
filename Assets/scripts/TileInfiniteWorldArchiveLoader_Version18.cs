@@ -34,21 +34,27 @@ public class TileInfiniteWorldArchiveLoader : MonoBehaviour
         isInitialized = true;
     }
 
-    public TileType GetTileTypeForFog(Vector3Int pos, TileType fallback)
+    /// <summary>
+    /// Returns the tag of the tile (e.g. "air", "cave", or biome tag string) for fog logic.
+    /// </summary>
+    public string GetTileTagForFog(Vector3Int pos, string fallback)
     {
         if (!isInitialized || worldArchive == null) return fallback;
 
         TileData tileData = worldArchive.TryGetTile(pos);
         if (tileData != null)
-            return tileData.type;
+            return tileData.blockTagOrName;
         // If not found, fallback logic
         return fallback;
     }
 
-    public void ModifyTile(Vector3Int pos, TileType type)
+    /// <summary>
+    /// Modify a tile by its string tag (e.g. "air", "cave", or biome name from inspector).
+    /// </summary>
+    public void ModifyTile(Vector3Int pos, string tag)
     {
         if (!isInitialized || worldArchive == null) return;
-        worldArchive.SetTile(pos, new TileData { type = type });
+        worldArchive.SetTile(pos, new TileData { blockTagOrName = tag });
     }
 
     public void DeleteTile(Vector3Int pos)

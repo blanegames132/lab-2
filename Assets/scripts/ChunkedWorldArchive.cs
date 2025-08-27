@@ -27,14 +27,28 @@ public class ChunkedWorldArchive
     // Global file I/O lock to serialize ALL reads/writes across the process
     private static readonly object FileIoLock = new object();
     private Dictionary<Vector2Int, int> chunkBiomes = new Dictionary<Vector2Int, int>();
-    // If your type is different, use it.
 
-    // ... your existing constructor and methods ...
+    // -----------------------------
+    // Returns all world tile positions and data (from loaded/in-memory chunks only, for speed)
+    // -----------------------------
+    public Dictionary<Vector3Int, TileData> AllTiles()
+    {
+        var allTiles = new Dictionary<Vector3Int, TileData>();
+        foreach (var chunkPair in loadedChunks)
+        {
+            foreach (var tilePair in chunkPair.Value.GetAllTiles())
+            {
+                allTiles[tilePair.Key] = tilePair.Value;
+            }
+        }
+        return allTiles;
+    }
 
     public bool HasChunk(Vector2Int key)
     {
         return chunkBiomes.ContainsKey(key);
     }
+
     public ChunkedWorldArchive(string seed)
     {
         // Use Path.Combine for cross-platform compatibility
@@ -326,7 +340,37 @@ public class Chunk : ISerializationCallbackReceiver
         return tiles.Remove(GetKey(pos));
     }
 
+    /// <summary>
+    /// Returns all (world position, tileData) pairs for this chunk.
+    /// </summary>
+    public Dictionary<Vector3Int, TileData> GetAllTiles()
+    {
+        var dict = new Dictionary<Vector3Int, TileData>();
+        if (tiles == null) return dict;
+        foreach (var kv in tiles)
+        {
+            if (TryParseKey(kv.Key, out var pos))
+                dict[pos] = kv.Value;
+        }
+        return dict;
+    }
+
     private static string GetKey(Vector3Int pos) => $"{pos.x},{pos.y},{pos.z}";
+
+    private static bool TryParseKey(string key, out Vector3Int pos)
+    {
+        var parts = key.Split(',');
+        if (parts.Length == 3 &&
+            int.TryParse(parts[0], out int x) &&
+            int.TryParse(parts[1], out int y) &&
+            int.TryParse(parts[2], out int z))
+        {
+            pos = new Vector3Int(x, y, z);
+            return true;
+        }
+        pos = default;
+        return false;
+    }
 
     // --- Serialization glue ---
     public void OnBeforeSerialize()

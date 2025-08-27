@@ -1,6 +1,7 @@
+// Only for special/manual tags!
 public enum TileType
 {
     Air = 0,
-    Dirt = 1,
-    Grass = 2,
+    Cave = 1,
+    // Do NOT add biome types here.
 }

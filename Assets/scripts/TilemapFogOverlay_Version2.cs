@@ -56,11 +56,12 @@ public class TilemapFogOverlay : MonoBehaviour
     bool IsNextToAir(Vector3Int tile)
     {
         if (worldSpawner == null) return false;
+        int biomeIndex = 0; // Default, replace with correct biomeIndex if needed
         foreach (var offset in neighborOffsets)
         {
             Vector3Int neighborPos = tile + offset;
-            TileType neighborType = worldSpawner.GetTileTypeForFog(neighborPos, TileType.Dirt);
-            if (neighborType == TileType.Air) return true;
+            string neighborType = worldSpawner.GetTileTypeForFog(neighborPos, "ground", biomeIndex);
+            if (neighborType == "air") return true;
         }
         return false;
     }
@@ -156,6 +157,7 @@ public class TilemapFogOverlay : MonoBehaviour
         Vector3 worldOffset = fogOrigin - srcOrigin;
 
         HashSet<Vector3Int> toHide = tileHiddenSet ? tileHiddenSet.GetTilesToHide(targetTilemap.transform.position) : new HashSet<Vector3Int>();
+        int biomeIndex = 0; // Default, replace if you have biome logic for this overlay
         for (int x = Mathf.Max(bounds.xMin, minX); x <= Mathf.Min(bounds.xMax - 1, maxX); x++)
             for (int y = Mathf.Max(bounds.yMin, minY); y <= Mathf.Min(bounds.yMax - 1, maxY); y++)
                 for (int z = bounds.zMin; z < bounds.zMax; z++)
@@ -180,8 +182,8 @@ public class TilemapFogOverlay : MonoBehaviour
                             foreach (var offset in neighborOffsets)
                             {
                                 Vector3Int neighborPos = tile + offset;
-                                TileType neighborType = worldSpawner.GetTileTypeForFog(neighborPos, TileType.Dirt);
-                                if (neighborType == TileType.Air) { adjacentToAir = true; break; }
+                                string neighborType = worldSpawner.GetTileTypeForFog(neighborPos, "ground", biomeIndex);
+                                if (neighborType == "air") { adjacentToAir = true; break; }
                             }
                             if (adjacentToAir) continue; // Reveal if adjacent to air
                         }
