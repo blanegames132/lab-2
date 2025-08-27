@@ -9,18 +9,19 @@ public class TilemapFogOverlay : MonoBehaviour
     public Tilemap targetTilemap;
     public Tilemap fogTilemap;
     public TileBase fogTile;
-    public TileInfiniteCameraSpawner worldSpawner;
+    public TileBase caveFogTile; // assign in inspector
     public TileHiddenSet tileHiddenSet;
     public Camera mainCamera;
+    public TileCaveUtility caveUtility; // assign in inspector!
+    public int caveSurfaceY = 0; // Assign surfaceY as appropriate, or get dynamically
 
     [Header("Fog Appearance")]
     public Color fogColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
 
     [Header("Logic")]
     public bool enableHideLogic = true;
-    [SerializeField] private bool reverseNextToAir = false; // Independent per GameObject, private but visible in Inspector
+    [SerializeField] private bool reverseNextToAir = false;
     public int cameraBuffer = 5;
-    public int maxTilesPerFrame = 12;
     public float updateInterval = 0.2f;
     public float fogRadius = 20f;
 
@@ -33,7 +34,6 @@ public class TilemapFogOverlay : MonoBehaviour
 
     private HashSet<Vector3Int> fogTilesSet = new HashSet<Vector3Int>();
     private BoundsInt lastCameraBounds;
-    private float updateCooldown = 0.1f;
     private float cooldownTimer = 0f;
 
     void Start()
@@ -52,7 +52,7 @@ public class TilemapFogOverlay : MonoBehaviour
         if (targetTilemap == null || fogTilemap == null || fogTile == null || mainCamera == null) return;
 
         cooldownTimer += Time.deltaTime;
-        if (cooldownTimer < updateCooldown) return;
+        if (cooldownTimer < updateInterval) return;
         cooldownTimer = 0f;
 
         Vector3 camCenter = mainCamera.transform.position;
@@ -71,9 +71,9 @@ public class TilemapFogOverlay : MonoBehaviour
 
     void UpdateFogOverlay()
     {
-        Vector3 targetPos = targetTilemap.transform.position;
+        // Set fog tilemap Z layer just above target
+        float desiredZ = targetTilemap.transform.position.z + 0.1f;
         Vector3 fogPos = fogTilemap.transform.position;
-        float desiredZ = targetPos.z + 0.1f;
         if (!Mathf.Approximately(fogPos.z, desiredZ))
             fogTilemap.transform.position = new Vector3(fogPos.x, fogPos.y, desiredZ);
 
@@ -84,31 +84,56 @@ public class TilemapFogOverlay : MonoBehaviour
         int maxY = Mathf.CeilToInt(camCenter.y + fogRadius + cameraBuffer);
 
         BoundsInt bounds = targetTilemap.cellBounds;
-
         HashSet<Vector3Int> newFogTiles = new HashSet<Vector3Int>();
+
         Vector3 srcOrigin = targetTilemap.layoutGrid.CellToWorld(Vector3Int.zero) + targetTilemap.transform.position;
         Vector3 fogOrigin = fogTilemap.layoutGrid.CellToWorld(Vector3Int.zero) + fogTilemap.transform.position;
         Vector3 worldOffset = fogOrigin - srcOrigin;
 
         HashSet<Vector3Int> toHide = tileHiddenSet ? tileHiddenSet.GetTilesToHide(targetTilemap.transform.position) : new HashSet<Vector3Int>();
+
         for (int x = Mathf.Max(bounds.xMin, minX); x <= Mathf.Min(bounds.xMax - 1, maxX); x++)
             for (int y = Mathf.Max(bounds.yMin, minY); y <= Mathf.Min(bounds.yMax - 1, maxY); y++)
                 for (int z = bounds.zMin; z < bounds.zMax; z++)
                 {
                     Vector3Int tile = new Vector3Int(x, y, z);
                     if (targetTilemap.GetTile(tile) == null) continue;
+                    if (enableHideLogic && toHide.Contains(tile)) continue;
 
                     Vector3 worldPos = targetTilemap.CellToWorld(tile) + worldOffset;
                     float dist = Vector2.Distance(new Vector2(worldPos.x, worldPos.y), new Vector2(camCenter.x, camCenter.y));
                     if (dist > fogRadius) continue;
 
-                    if (enableHideLogic && toHide.Contains(tile)) continue;
-
                     Vector3Int fogCell = fogTilemap.WorldToCell(worldPos);
                     newFogTiles.Add(fogCell);
                 }
 
-        // --- Only remove tiles next to air if toggle is OFF ---
+        // Overlay cave fog in the exact same way as TileCaveUtility (when targetTilemap is front)
+        if (caveUtility != null && targetTilemap == caveUtility.caveTilemap)
+        {
+            int caveZ = caveUtility.targetZLayer;
+            int surfaceY = caveSurfaceY; // Set this as needed!
+
+            for (int x = Mathf.Max(bounds.xMin, minX); x <= Mathf.Min(bounds.xMax - 1, maxX); x++)
+                for (int y = Mathf.Max(bounds.yMin, minY); y <= Mathf.Min(bounds.yMax - 1, maxY); y++)
+                {
+                    // Use the same check as TileCaveUtility
+                    if (caveUtility.IsCaveAt(x, y, caveZ, surfaceY))
+                    {
+                        Vector3Int caveCell = new Vector3Int(x, y, caveZ);
+                        Vector3 worldPos = targetTilemap.CellToWorld(caveCell) + worldOffset;
+                        float dist = Vector2.Distance(new Vector2(worldPos.x, worldPos.y), new Vector2(camCenter.x, camCenter.y));
+                        if (dist > fogRadius) continue;
+
+                        Vector3Int fogCell = fogTilemap.WorldToCell(worldPos);
+                        newFogTiles.Add(fogCell);
+
+                        // Optionally, you can use a special cave fog tile here
+                    }
+                }
+        }
+
+        // Remove edge fog if desired
         if (!reverseNextToAir)
         {
             var tilesToRemove = new List<Vector3Int>();
@@ -134,8 +159,8 @@ public class TilemapFogOverlay : MonoBehaviour
                 newFogTiles.Remove(tile);
             }
         }
-        // If reverseNextToAir is ON, nothing is removed. Everything stays overlayed.
 
+        // Update fog tiles
         foreach (var pos in fogTilesSet)
         {
             if (!newFogTiles.Contains(pos))
@@ -145,7 +170,8 @@ public class TilemapFogOverlay : MonoBehaviour
         {
             if (!fogTilesSet.Contains(pos))
             {
-                fogTilemap.SetTile(pos, fogTile);
+                // Optionally: Use caveFogTile if this is a cave overlay
+                fogTilemap.SetTile(pos, fogTile); // or caveFogTile if you want a different look
                 fogTilemap.SetColliderType(pos, Tile.ColliderType.None);
             }
         }

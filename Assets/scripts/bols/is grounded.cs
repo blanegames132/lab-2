@@ -6,23 +6,42 @@ public class isgrounded : MonoBehaviour
 
     [SerializeField] private PlayerLeftRightMovement playerMovement; // Assign in inspector
 
-    private BoxCollider2D boxCollider;
+    private Collider2D myCollider;
 
     void Start()
     {
-        boxCollider = GetComponent<BoxCollider2D>();
+        myCollider = GetComponent<Collider2D>();
+        if (myCollider == null)
+        {
+            Debug.LogError("No 2D Collider found on this GameObject.");
+        }
     }
 
     void Update()
     {
-        // Check if this BoxCollider2D is touching anything at all
+        if (myCollider == null)
+        {
+            grounded = false;
+            return;
+        }
+
         ContactFilter2D filter = new ContactFilter2D();
         filter.NoFilter(); // Accept all layers and types
 
         Collider2D[] results = new Collider2D[5];
-        int touching = boxCollider.Overlap(filter, results);
+        int touching = myCollider.Overlap(filter, results);
 
-        grounded = touching > 0;
+        // Exclude self-collision
+        int actualTouching = 0;
+        for (int i = 0; i < touching; i++)
+        {
+            if (results[i] != myCollider && results[i] != null)
+            {
+                actualTouching++;
+            }
+        }
+
+        grounded = actualTouching > 0;
 
         // Update PlayerLeftRightMovement's isGrounded variable if assigned
         if (playerMovement != null)

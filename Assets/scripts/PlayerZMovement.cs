@@ -7,51 +7,38 @@ public class PlayerZMovement : MonoBehaviour
     [SerializeField] private Tilemap middleBackTilemap;
     [SerializeField] private int zCheckDistance = 1;
 
-    // True if blocked behind (so S movement is not allowed)
     public bool zBlockedBehind { get; private set; } = false;
-    // True if blocked in front (so W movement is not allowed)
     public bool zBlockedFront { get; private set; } = false;
 
     void Update()
     {
         Vector3 pos = transform.position;
 
-        // Check if blocked behind (S direction)
+        // Check if blocked behind (S) and in front (W)
         zBlockedBehind = IsTileBlocked(Vector3Int.back);
-        // Check if blocked in front (W direction)
         zBlockedFront = IsTileBlocked(Vector3Int.forward);
 
-        // Move "forward" in Z when holding W, only if not blocked
-        if (Input.GetKey(KeyCode.W))
+        // Move forward in Z (W key)
+        if (Input.GetKey(KeyCode.W) && !zBlockedFront)
         {
-            if (!zBlockedFront)
-            {
-                pos.z += zMoveAmount;
-            }
-            else
-            {
-                Debug.Log("W movement blocked: zBlockedFront is TRUE, cannot move forward in Z.");
-            }
+            pos.z += zMoveAmount;
         }
-        // Move "back" in Z when holding S, only if not blocked
-        if (Input.GetKey(KeyCode.S))
+        // Move backward in Z (S key)
+        if (Input.GetKey(KeyCode.S) && !zBlockedBehind)
         {
-            if (!zBlockedBehind)
-            {
-                pos.z -= zMoveAmount;
-            }
-            else
-            {
-                Debug.Log("S movement blocked: zBlockedBehind is TRUE, cannot move backward in Z.");
-            }
+            pos.z -= zMoveAmount;
         }
 
         transform.position = pos;
     }
 
+    /// <summary>
+    /// Checks the tilemap for a tile at the position offset in Z direction.
+    /// </summary>
     private bool IsTileBlocked(Vector3Int zDirection)
     {
         if (middleBackTilemap == null) return false;
+
         Vector3Int playerCell = middleBackTilemap.WorldToCell(transform.position);
         Vector3Int checkPos = playerCell + zDirection * zCheckDistance;
         return middleBackTilemap.GetTile(checkPos) != null;

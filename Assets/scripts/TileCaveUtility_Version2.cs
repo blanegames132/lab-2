@@ -51,36 +51,31 @@ public class TileCaveUtility : MonoBehaviour
 
     public int caveEntranceAbove = 10;
     public int caveEntranceBelow = 20;
-
-    // END points for left and right cave exits at the cave bottom
-    public int caveExitYOffset = 50; // vertical drop before exit
-    public int caveExitXOffset = 60; // horizontal offset from start x (left/right)
+    public int caveExitYOffset = 50;
+    public int caveExitXOffset = 60;
 
     [Header("Tile Assets")]
     public TileBase visibleCaveTileAsset;
 
     [Tooltip("Tilemap to spawn cave assets into. Assign in Inspector.")]
-    public Tilemap targetTilemap;
-    public Transform playerTransform; // Assign the player transform in Inspector
+    public Tilemap caveTilemap; // <--- Select this in Inspector!
+
+    public Transform playerTransform;
     public bool IsInitialized { get; private set; } = false;
 
     public int minX = -100, maxX = 100, minY = -120, maxY = 30, z = 0;
 
     [Header("Debug Controls")]
-    public bool debug = true; // Toggle this in Inspector to control cave drawing/deletion
-    public int targetZLayer = 0; // Set this to match your desired z-layer for cave drawing
+    public bool debug = true;
+    public int targetZLayer = 0;
 
     void Awake()
     {
         IsInitialized = true;
     }
 
-    /// <summary>
-    /// Returns true if a cave or cave entrance is present at this location.
-    /// </summary>
     public bool IsCaveAt(int x, int y, int z, int surfaceY)
     {
-        // Check horizontally for entrance
         for (int dx = -caveEntranceWidth / 2; dx <= caveEntranceWidth / 2; dx++)
         {
             if (IsCaveEntranceSingle(x + dx, y, z, surfaceY) &&
@@ -89,7 +84,6 @@ public class TileCaveUtility : MonoBehaviour
                 return true;
             }
         }
-        // Otherwise, check for regular cave
         return CaveGenerator(x, y, z, surfaceY) > caveThreshold;
     }
 
@@ -99,24 +93,18 @@ public class TileCaveUtility : MonoBehaviour
         int entranceBottom = surfaceY - caveEntranceBelow;
         if (y > entranceTop || y < entranceBottom - caveExitYOffset) return false;
 
-        // Stable PRNG per column
         int entranceSeed = x * 73856093 ^ z * 19349663;
         System.Random entranceRand = new System.Random(entranceSeed);
 
         if (entranceRand.NextDouble() >= caveEntranceChance)
             return false;
 
-        // Pick left or right as the cave exit for this entrance (random for each entrance column)
         bool exitLeft = entranceRand.NextDouble() < 0.5;
-
-        // The Y coordinate of the bottom exit
         int exitY = entranceBottom - caveExitYOffset;
-        // The X coordinate of the bottom exit
         int exitX = x + (exitLeft ? -caveExitXOffset : caveExitXOffset);
 
-        // Parametric t for [entranceTop ... exitY]
         float t = Mathf.InverseLerp(entranceTop, exitY, y);
-        float curvePower = 1.7f; // Controls how long it stays horizontal
+        float curvePower = 1.7f;
         float curvedT = Mathf.Pow(t, curvePower);
 
         float idealX = Mathf.Lerp(x, exitX, curvedT);
@@ -200,38 +188,34 @@ public class TileCaveUtility : MonoBehaviour
             UnityEngine.Debug.LogError("TileCaveUtility: No cave tile asset assigned in Inspector.");
             return;
         }
-        if (targetTilemap == null)
+        if (caveTilemap == null)
         {
-            UnityEngine.Debug.LogError("TileCaveUtility: No target Tilemap assigned in Inspector.");
+            UnityEngine.Debug.LogError("TileCaveUtility: No cave Tilemap assigned in Inspector.");
             return;
         }
-        // Only handle tiles on the correct z-layer
         if (gridPosition.z != targetZLayer)
         {
-            // If not on the correct z, always delete any cave tile here
-            targetTilemap.SetTile(gridPosition, null);
-            targetTilemap.SetTile(gridPosition + Vector3Int.up, null);
-            targetTilemap.SetTile(gridPosition + Vector3Int.down, null);
-            targetTilemap.SetTile(gridPosition + Vector3Int.left, null);
-            targetTilemap.SetTile(gridPosition + Vector3Int.right, null);
+            caveTilemap.SetTile(gridPosition, null);
+            caveTilemap.SetTile(gridPosition + Vector3Int.up, null);
+            caveTilemap.SetTile(gridPosition + Vector3Int.down, null);
+            caveTilemap.SetTile(gridPosition + Vector3Int.left, null);
+            caveTilemap.SetTile(gridPosition + Vector3Int.right, null);
             return;
         }
         if (!debug)
         {
-            // Debug off: delete cave tile
-            targetTilemap.SetTile(gridPosition, null);
-            targetTilemap.SetTile(gridPosition + Vector3Int.up, null);
-            targetTilemap.SetTile(gridPosition + Vector3Int.down, null);
-            targetTilemap.SetTile(gridPosition + Vector3Int.left, null);
-            targetTilemap.SetTile(gridPosition + Vector3Int.right, null);
+            caveTilemap.SetTile(gridPosition, null);
+            caveTilemap.SetTile(gridPosition + Vector3Int.up, null);
+            caveTilemap.SetTile(gridPosition + Vector3Int.down, null);
+            caveTilemap.SetTile(gridPosition + Vector3Int.left, null);
+            caveTilemap.SetTile(gridPosition + Vector3Int.right, null);
             return;
         }
-        // Debug on and z matches: spawn cave tile
-        targetTilemap.SetTile(gridPosition, visibleCaveTileAsset);
-        targetTilemap.SetTile(gridPosition + Vector3Int.up, visibleCaveTileAsset);
-        targetTilemap.SetTile(gridPosition + Vector3Int.down, visibleCaveTileAsset);
-        targetTilemap.SetTile(gridPosition + Vector3Int.left, visibleCaveTileAsset);
-        targetTilemap.SetTile(gridPosition + Vector3Int.right, visibleCaveTileAsset);
+        caveTilemap.SetTile(gridPosition, visibleCaveTileAsset);
+        caveTilemap.SetTile(gridPosition + Vector3Int.up, visibleCaveTileAsset);
+        caveTilemap.SetTile(gridPosition + Vector3Int.down, visibleCaveTileAsset);
+        caveTilemap.SetTile(gridPosition + Vector3Int.left, visibleCaveTileAsset);
+        caveTilemap.SetTile(gridPosition + Vector3Int.right, visibleCaveTileAsset);
     }
 
     /// <summary>
@@ -249,9 +233,9 @@ public class TileCaveUtility : MonoBehaviour
             UnityEngine.Debug.LogError("TileCaveUtility: No cave tile asset assigned in Inspector.");
             return;
         }
-        if (targetTilemap == null)
+        if (caveTilemap == null)
         {
-            UnityEngine.Debug.LogError("TileCaveUtility: No target Tilemap assigned in Inspector.");
+            UnityEngine.Debug.LogError("TileCaveUtility: No cave Tilemap assigned in Inspector.");
             return;
         }
 
@@ -268,14 +252,13 @@ public class TileCaveUtility : MonoBehaviour
             }
             else
             {
-                // If not a cave, make sure to clear any cave asset here
                 if (gridPos.z == targetZLayer)
                 {
-                    targetTilemap.SetTile(gridPos, null);
-                    targetTilemap.SetTile(gridPos + Vector3Int.up, null);
-                    targetTilemap.SetTile(gridPos + Vector3Int.down, null);
-                    targetTilemap.SetTile(gridPos + Vector3Int.left, null);
-                    targetTilemap.SetTile(gridPos + Vector3Int.right, null);
+                    caveTilemap.SetTile(gridPos, null);
+                    caveTilemap.SetTile(gridPos + Vector3Int.up, null);
+                    caveTilemap.SetTile(gridPos + Vector3Int.down, null);
+                    caveTilemap.SetTile(gridPos + Vector3Int.left, null);
+                    caveTilemap.SetTile(gridPos + Vector3Int.right, null);
                 }
             }
         }
@@ -286,7 +269,6 @@ public class TileCaveUtility : MonoBehaviour
         if (playerTransform != null)
         {
             DrawCavesFromArchive(new ChunkedWorldArchive("default"));
-            // Optionally test at origin:
             HandleCaveAsset(new Vector3Int(0, 0, targetZLayer));
         }
     }

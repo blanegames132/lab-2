@@ -9,14 +9,16 @@ public class GenericZOrderSetter : MonoBehaviour
 
     void LateUpdate()
     {
-        int targetZ = zOffset;
+        float refZ = 0f;
         if (referenceTransform != null)
-            targetZ += Mathf.RoundToInt(referenceTransform.position.z);
+            refZ = referenceTransform.position.z;
 
-        // Clamp to -2, -1, 0, 1, 2 only
-        targetZ = Mathf.Clamp(targetZ, -2, 2);
+        // Calculate target Z, round, and clamp to allowed range
+        int targetZ = Mathf.Clamp(Mathf.RoundToInt(refZ) + zOffset, -2, 2);
 
         Vector3 pos = transform.position;
-        transform.position = new Vector3(pos.x, pos.y, targetZ);
+        // Only update z if changed for efficiency
+        if (!Mathf.Approximately(pos.z, targetZ))
+            transform.position = new Vector3(pos.x, pos.y, targetZ);
     }
 }

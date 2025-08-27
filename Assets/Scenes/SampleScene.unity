@@ -239,7 +239,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enableWorldArchive: 1
   useCustomSeed: 0
-  customSeed: MyWorldSeed
+  customSeed: 
   hillRandomSeed: 
   generatedSeedHash: 1120186595
   usedSeedString: 
@@ -315,10 +315,14 @@ MonoBehaviour:
   biomes:
   - name: 
     surfaceTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+    subsurfaceTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
     groundTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+    bedrockTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   - name: 
     surfaceTile: {fileID: 11400000, guid: 3f5069fe6ff5cc046819ee049347ef17, type: 2}
+    subsurfaceTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
     groundTile: {fileID: 11400000, guid: e566a846a95a6274aa3495dc34075623, type: 2}
+    bedrockTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   caveUtility: {fileID: 127414193}
   repeatRange: 0
   curveShift: -0.4414236
@@ -328,8 +332,8 @@ MonoBehaviour:
   perlinBase: 0.9778771
   worldBottomY: -286
   ChunkSize: 16
-  ChunksVisible: 20
-  ChunksGenerated: 100
+  ChunksVisible: 10
+  ChunksGenerated: 20
   tileHiddenSet: {fileID: 127414189}
   midFrontTileHiddenSet: {fileID: 127414191}
 --- !u!114 &127414193
@@ -365,11 +369,15 @@ MonoBehaviour:
   caveExitYOffset: 50
   caveExitXOffset: 60
   visibleCaveTileAsset: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+  caveTilemap: {fileID: 0}
+  playerTransform: {fileID: 892277581}
   minX: -100
   maxX: 100
   minY: -120
   maxY: 30
   z: 0
+  debug: 1
+  targetZLayer: 0
 --- !u!114 &127414194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -394,12 +402,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00bdada17c5d5034f939787cdbbd1a50, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  seedString: 
-  tileSpawner: {fileID: 127414192}
-  MaxChunksInMemory: 71
-  UnloadBeyondChunks: 45
-  SaveEveryNModifications: 1
-  modificationCounter: 0
 --- !u!114 &127414197
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -412,7 +414,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f90eb6e887cbac94587bd0f5296cff98, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hillHeight: 10
 --- !u!1 &139177888
 GameObject:
   m_ObjectHideFlags: 0
@@ -468,12 +469,12 @@ MonoBehaviour:
   tileHiddenSet: {fileID: 127414189}
   mainCamera: {fileID: 519420031}
   fogColor: {r: 1, g: 0, b: 0, a: 0.6}
-  enableHideLogic: 1
-  hideIfNextToAir: 1
+  enableHideLogic: 0
+  reverseNextToAir: 0
   cameraBuffer: 5
   maxTilesPerFrame: 12
   updateInterval: 0.2
-  fogRadius: 16
+  fogRadius: 20
 --- !u!114 &139177891
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -782,6 +783,7 @@ GameObject:
   - component: {fileID: 399802580}
   - component: {fileID: 399802579}
   - component: {fileID: 399802578}
+  - component: {fileID: 399802582}
   m_Layer: 0
   m_Name: fog (5)
   m_TagString: Untagged
@@ -922,6 +924,31 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &399802582
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 399802575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29914693e5402ac4e91f1bafa745133e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetTilemap: {fileID: 840299867}
+  fogTilemap: {fileID: 399802581}
+  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  worldSpawner: {fileID: 127414192}
+  tileHiddenSet: {fileID: 127414189}
+  mainCamera: {fileID: 519420031}
+  fogColor: {r: 1, g: 0.82732826, b: 0, a: 1}
+  enableHideLogic: 0
+  reverseNextToAir: 0
+  cameraBuffer: 5
+  maxTilesPerFrame: 12
+  updateInterval: 0.2
+  fogRadius: 20
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -2065,11 +2092,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f242a6fba8821d749acbd26bddbbd36c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  leftSpeed: 10
-  rightSpeed: 10
-  leftRunSpeed: 16
-  rightRunSpeed: 16
-  jumpForce: 5
+  leftSpeed: 3
+  rightSpeed: 3
+  leftRunSpeed: 6
+  rightRunSpeed: 6
+  jumpForce: 7
   player: {fileID: 892277583}
   animatorController: {fileID: 892277589}
   isGrounded: 0
@@ -2109,7 +2136,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ca9d176eecc0e54f9c128f028b37617, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  zMoveAmount: 0.1
+  zMoveAmount: 0.2
   zMoveMode: 0
   middleBackTilemap: {fileID: 854121014}
   middlefrontTilemap: {fileID: 1899764065}
@@ -2209,6 +2236,7 @@ GameObject:
   - component: {fileID: 1110901131}
   - component: {fileID: 1110901130}
   - component: {fileID: 1110901129}
+  - component: {fileID: 1110901133}
   m_Layer: 0
   m_Name: fog (6)
   m_TagString: Untagged
@@ -2349,6 +2377,31 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &1110901133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1110901126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29914693e5402ac4e91f1bafa745133e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetTilemap: {fileID: 854121014}
+  fogTilemap: {fileID: 1110901132}
+  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  worldSpawner: {fileID: 127414192}
+  tileHiddenSet: {fileID: 127414189}
+  mainCamera: {fileID: 519420031}
+  fogColor: {r: 0.08627451, g: 0.3529412, b: 0, a: 1}
+  enableHideLogic: 0
+  reverseNextToAir: 0
+  cameraBuffer: 5
+  maxTilesPerFrame: 12
+  updateInterval: 0.2
+  fogRadius: 20
 --- !u!1 &1252015336
 GameObject:
   m_ObjectHideFlags: 0
@@ -2465,7 +2518,7 @@ Tilemap:
   m_TileColorArray: []
   m_TileObjectToInstantiateArray: []
   m_AnimationFrameRate: 1
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.6528301, g: 0.17121388, b: 0.17121388, a: 1}
   m_Origin: {x: 0, y: 0, z: 0}
   m_Size: {x: 0, y: 0, z: 1}
   m_TileAnchor: {x: 0.5, y: 0.5, z: 0}
@@ -3064,7 +3117,7 @@ MonoBehaviour:
   backTilemap: {fileID: 840299867}
   powerUpPrefab: {fileID: 3560360957326050748, guid: 5110d5b64222a014c8ff0bb94595fb86, type: 3}
   cam: {fileID: 519420031}
-  spawner: {fileID: 0}
+  spawner: {fileID: 127414192}
   spawnChancePerEdge: 0.116
 --- !u!4 &1980366263
 Transform:
@@ -3094,6 +3147,7 @@ GameObject:
   - component: {fileID: 2016733400}
   - component: {fileID: 2016733399}
   - component: {fileID: 2016733398}
+  - component: {fileID: 2016733402}
   m_Layer: 0
   m_Name: fog (8)
   m_TagString: Untagged
@@ -3128,7 +3182,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c32cafe1b0c6144580907c94510bff9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  referenceTransform: {fileID: 0}
+  referenceTransform: {fileID: 1899764060}
   zOffset: 0
 --- !u!114 &2016733399
 MonoBehaviour:
@@ -3234,6 +3288,31 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &2016733402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016733395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29914693e5402ac4e91f1bafa745133e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetTilemap: {fileID: 1899764065}
+  fogTilemap: {fileID: 2016733401}
+  fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  worldSpawner: {fileID: 127414192}
+  tileHiddenSet: {fileID: 127414189}
+  mainCamera: {fileID: 519420031}
+  fogColor: {r: 0, g: 0.031144619, b: 1, a: 1}
+  enableHideLogic: 0
+  reverseNextToAir: 0
+  cameraBuffer: 5
+  maxTilesPerFrame: 12
+  updateInterval: 0.2
+  fogRadius: 20
 --- !u!1 &2050080547
 GameObject:
   m_ObjectHideFlags: 0
