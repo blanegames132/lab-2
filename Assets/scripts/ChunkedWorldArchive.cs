@@ -43,7 +43,7 @@ public class ChunkedWorldArchive
         }
         return allTiles;
     }
-    public void MarkCavesDiscoveredAroundPlayer(Vector3 playerPosition, float radius = 10f)
+    public void MarkCavesDiscoveredAroundPlayer(Vector3 playerPosition, float radius = 4f)
     {
         bool changed = false;
         foreach (var pair in AllTiles())

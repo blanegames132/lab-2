@@ -137,6 +137,7 @@ GameObject:
   - component: {fileID: 127414194}
   - component: {fileID: 127414195}
   - component: {fileID: 127414197}
+  - component: {fileID: 127414198}
   m_Layer: 0
   m_Name: tilemanager
   m_TagString: Untagged
@@ -337,6 +338,7 @@ MonoBehaviour:
   ChunksGenerated: 20
   tileHiddenSet: {fileID: 127414189}
   midFrontTileHiddenSet: {fileID: 127414191}
+  chunkUpdateManager: {fileID: 127414198}
 --- !u!114 &127414193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -422,6 +424,21 @@ MonoBehaviour:
   player: {fileID: 0}
   caveTilemapFog: {fileID: 0}
   discoveryRadius: 5
+--- !u!114 &127414198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d19ddab50163b7f48afca300bfdc92d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawner: {fileID: 127414192}
+  maxChunksPerFrame: 2
+  updateDistance: 64
 --- !u!1 &139177888
 GameObject:
   m_ObjectHideFlags: 0
