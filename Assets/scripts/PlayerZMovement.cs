@@ -19,12 +19,12 @@ public class PlayerZMovement : MonoBehaviour
         zBlockedFront = IsTileBlocked(Vector3Int.forward);
 
         // Move forward in Z (W key)
-        if (Input.GetKey(KeyCode.W) && !zBlockedFront)
+        if (Input.GetKey(KeyCode.S) && !zBlockedFront)
         {
             pos.z += zMoveAmount;
         }
         // Move backward in Z (S key)
-        if (Input.GetKey(KeyCode.S) && !zBlockedBehind)
+        if (Input.GetKey(KeyCode.W) && !zBlockedBehind)
         {
             pos.z -= zMoveAmount;
         }

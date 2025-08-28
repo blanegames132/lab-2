@@ -1,51 +1,38 @@
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using System;
 
 public class TileCaveUtility : MonoBehaviour
 {
     [Header("Cave Generation Controls")]
     public float caveFrequency = 0.09f;
     public float caveThreshold = 0.5f;
-    [Tooltip("Controls horizontal stretching of caves. 1.0 = classic.")]
     public float caveHorizontalMultiplier = 1.0f;
-    [Tooltip("Controls vertical stretching of caves. 1.0 = classic.")]
     public float caveVerticalMultiplier = 1.0f;
-    [Tooltip("How sharp or smooth the cave boundaries are. 1.0 = classic.")]
     [Range(0.5f, 5f)]
     public float caveSharpness = 1.0f;
-    [Tooltip("Add a secondary frequency for more layered noise.")]
     public float secondaryFrequency = 0.0f;
-    [Tooltip("Weight for secondary noise layer.")]
     [Range(0f, 1f)]
     public float secondaryWeight = 0.0f;
-    [Tooltip("Adds a bias to make caves more likely in lower or higher areas (-1 = bottom, +1 = top, 0 = no bias).")]
     [Range(-1f, 1f)]
     public float verticalBias = 0.0f;
-    [Tooltip("Influence of the vertical bias (0 = none, 1 = strong).")]
     [Range(0f, 1f)]
     public float verticalBiasStrength = 0.0f;
 
     [Header("Cave Shape/Curve Controls")]
-    [Tooltip("How much caves should curve/wave (0 = straight, higher = more curvy/wiggly).")]
     public float caveCurve = 0.0f;
-    [Tooltip("How much caves get thinner/thicker as you go down (0 = fixed, >0 = thinner down, <0 = thicker down).")]
     public float caveVerticalScale = 0.0f;
-    [Tooltip("How much caves get thinner/thicker as you go sideways (0 = fixed, >0 = thinner sides, <0 = thicker sides).")]
     public float caveHorizontalScale = 0.0f;
 
     [Header("Deep Cave Controls")]
-    [Tooltip("How deep (in tiles) the 'deep cave' region is below the surface.")]
-    public int surfaceDepth = 100; // Caves only spawn below surfaceY - surfaceDepth
+    public int surfaceDepth = 100;
 
     [Header("Cave Entrance Controls")]
-    [Tooltip("Chance for a column to have a cave entrance (0-1)")]
     [Range(0f, 1f)]
     public float caveEntranceChance = 0.3f;
-    [Tooltip("How much cave entrances zigzag (0 = straight, higher = more zigzag/sideways)")]
     [Range(0f, 2f)]
     public float caveEntranceZigzag = 1.0f;
-    [Tooltip("How wide cave entrances are (in tiles, 2 = minimum allowed)")]
     [Range(2, 8)]
     public int caveEntranceWidth = 2;
 
@@ -56,18 +43,30 @@ public class TileCaveUtility : MonoBehaviour
 
     [Header("Tile Assets")]
     public TileBase visibleCaveTileAsset;
+    public TileBase visibleCaveTileAsset2;
 
     [Tooltip("Tilemap to spawn cave assets into. Assign in Inspector.")]
-    public Tilemap caveTilemap; // <--- Select this in Inspector!
+    public Tilemap caveTilemap;
+
+    [Tooltip("Tilemap to spawn cave assets into (Fog Debug). Assign in Inspector.")]
+    public Tilemap caveTilemapFog;
 
     public Transform playerTransform;
     public bool IsInitialized { get; private set; } = false;
 
-    public int minX = -100, maxX = 100, minY = -120, maxY = 30, z = 0;
+    public int minX = -100;
+    public int maxX = 100;
+    public int minY = -120;
+    public int maxY = 30;
+    public int z = 0;
 
-    [Header("Debug Controls")]
+    [Header("Debug Controls (Normal)")]
     public bool debug = true;
     public int targetZLayer = 0;
+
+    [Header("Debug Controls (Fog)")]
+    public bool debugFog = true;
+    public int targetZLayerFog = 0;
 
     void Awake()
     {
@@ -178,14 +177,12 @@ public class TileCaveUtility : MonoBehaviour
         return noise;
     }
 
-    /// <summary>
-    /// Spawn or delete cave asset at a grid position depending on debug and z-layer.
-    /// </summary>
+    // ---------------- DEBUG: operate only on caveTilemap, all z ----------------
     public void HandleCaveAsset(Vector3Int gridPosition)
     {
-        if (visibleCaveTileAsset == null)
+        if (visibleCaveTileAsset2 == null)
         {
-            UnityEngine.Debug.LogError("TileCaveUtility: No cave tile asset assigned in Inspector.");
+            UnityEngine.Debug.LogError("TileCaveUtility: No cave tile asset 2 assigned in Inspector.");
             return;
         }
         if (caveTilemap == null)
@@ -193,33 +190,84 @@ public class TileCaveUtility : MonoBehaviour
             UnityEngine.Debug.LogError("TileCaveUtility: No cave Tilemap assigned in Inspector.");
             return;
         }
-        if (gridPosition.z != targetZLayer)
+        if (debug)
+        {
+            caveTilemap.SetTile(gridPosition, visibleCaveTileAsset2);
+        }
+        else
         {
             caveTilemap.SetTile(gridPosition, null);
-            caveTilemap.SetTile(gridPosition + Vector3Int.up, null);
-            caveTilemap.SetTile(gridPosition + Vector3Int.down, null);
-            caveTilemap.SetTile(gridPosition + Vector3Int.left, null);
-            caveTilemap.SetTile(gridPosition + Vector3Int.right, null);
-            return;
         }
-        if (!debug)
+    }
+
+    // ---------------- FOG: operate only on caveTilemapFog, all z ----------------
+    public void HandleCaveAssetFog(Vector3Int gridPosition)
+    {
+        if (visibleCaveTileAsset == null)
         {
-            caveTilemap.SetTile(gridPosition, null);
-            caveTilemap.SetTile(gridPosition + Vector3Int.up, null);
-            caveTilemap.SetTile(gridPosition + Vector3Int.down, null);
-            caveTilemap.SetTile(gridPosition + Vector3Int.left, null);
-            caveTilemap.SetTile(gridPosition + Vector3Int.right, null);
+            UnityEngine.Debug.LogError("TileCaveUtility: No cave tile asset assigned in Inspector.");
             return;
         }
-        caveTilemap.SetTile(gridPosition, visibleCaveTileAsset);
-        caveTilemap.SetTile(gridPosition + Vector3Int.up, visibleCaveTileAsset);
-        caveTilemap.SetTile(gridPosition + Vector3Int.down, visibleCaveTileAsset);
-        caveTilemap.SetTile(gridPosition + Vector3Int.left, visibleCaveTileAsset);
-        caveTilemap.SetTile(gridPosition + Vector3Int.right, visibleCaveTileAsset);
+        if (caveTilemapFog == null)
+        {
+            UnityEngine.Debug.LogError("TileCaveUtility: No cave TilemapFog assigned in Inspector.");
+            return;
+        }
+        if (debugFog)
+        {
+            caveTilemapFog.SetTile(gridPosition, visibleCaveTileAsset);
+        }
+        else
+        {
+            caveTilemapFog.SetTile(gridPosition, null);
+        }
     }
 
     /// <summary>
-    /// Draw cave tiles from archive, with debug/z-layer logic.
+    /// Mark all cave tiles within radius as discovered, remove fog, and persist to archive.
+    /// </summary>
+    public void DiscoverAndDeleteCavesInRadius(Vector3 center, float radius, ChunkedWorldArchive archive)
+    {
+        var toDelete = new List<Vector3Int>();
+        foreach (var pair in archive.AllTiles())
+        {
+            Vector3Int pos = pair.Key;
+            TileData data = pair.Value;
+            if (Vector3.Distance(center, pos) <= radius && data != null && data.blockTagOrName == "cave")
+            {
+                toDelete.Add(pos);
+            }
+        }
+        foreach (var pos in toDelete)
+        {
+            archive.RemoveTile(pos);
+            Debug.Log($"Cave tile deleted from archive at {pos}");
+        }
+        if (toDelete.Count > 0)
+            archive.SaveAll();
+
+        // Clear tiles in both tilemaps, all z
+        void ClearAllTilesInTilemap(Tilemap tilemap)
+        {
+            if (tilemap == null) return;
+            foreach (var pos in tilemap.cellBounds.allPositionsWithin)
+            {
+                if (Vector3.Distance(center, pos) <= radius)
+                {
+                    if (tilemap.GetTile(pos) != null)
+                    {
+                        tilemap.SetTile(pos, null);
+                        Debug.Log($"Tile cleared from tilemap at {pos}");
+                    }
+                }
+            }
+        }
+        ClearAllTilesInTilemap(caveTilemap);
+        ClearAllTilesInTilemap(caveTilemapFog);
+    }
+
+    /// <summary>
+    /// Draw caves: debug on caveTilemap, fog on caveTilemapFog, all z
     /// </summary>
     public void DrawCavesFromArchive(ChunkedWorldArchive archive)
     {
@@ -238,6 +286,11 @@ public class TileCaveUtility : MonoBehaviour
             UnityEngine.Debug.LogError("TileCaveUtility: No cave Tilemap assigned in Inspector.");
             return;
         }
+        if (caveTilemapFog == null)
+        {
+            UnityEngine.Debug.LogError("TileCaveUtility: No cave TilemapFog assigned in Inspector.");
+            return;
+        }
 
         var allTiles = archive.AllTiles();
 
@@ -248,28 +301,56 @@ public class TileCaveUtility : MonoBehaviour
 
             if (tileData != null && tileData.blockTagOrName == "cave")
             {
-                HandleCaveAsset(gridPos);
+                // Normal debug: always draw if debug is on
+                if (debug)
+                {
+                    HandleCaveAsset(gridPos);
+                }
+
+                // FOG DEBUG: draw ONLY if NOT discovered, else remove from fog tilemap
+                if (debugFog)
+                {
+                    if (!tileData.discovered)
+                    {
+                        HandleCaveAssetFog(gridPos); // show tile in fog
+                    }
+                    else
+                    {
+                        caveTilemapFog.SetTile(gridPos, null); // remove tile from fog if discovered
+                    }
+                }
+
+                // Log discovered tiles
+                if (tileData.discovered)
+                {
+                    Debug.Log($"Tile at {gridPos} is discovered.");
+                }
             }
             else
             {
-                if (gridPos.z == targetZLayer)
-                {
-                    caveTilemap.SetTile(gridPos, null);
-                    caveTilemap.SetTile(gridPos + Vector3Int.up, null);
-                    caveTilemap.SetTile(gridPos + Vector3Int.down, null);
-                    caveTilemap.SetTile(gridPos + Vector3Int.left, null);
-                    caveTilemap.SetTile(gridPos + Vector3Int.right, null);
-                }
+                caveTilemap.SetTile(gridPos, null);
+                caveTilemapFog.SetTile(gridPos, null);
             }
         }
     }
 
-    void Update()
+    public class FogOfWarSystem : MonoBehaviour
     {
-        if (playerTransform != null)
+        public Transform player;
+        public Tilemap caveTilemapFog;
+        public ChunkedWorldArchive archive;
+        public float discoveryRadius = 5f;
+        public TileCaveUtility tileCaveUtility;
+
+        void Update()
         {
-            DrawCavesFromArchive(new ChunkedWorldArchive("default"));
-            HandleCaveAsset(new Vector3Int(0, 0, targetZLayer));
+            if (player == null || caveTilemapFog == null || archive == null || tileCaveUtility == null)
+                return;
+
+            Vector3Int playerGridPos = Vector3Int.FloorToInt(player.position);
+
+            // Mark caves as discovered in radius and update fog (removes from archive)
+            tileCaveUtility.DiscoverAndDeleteCavesInRadius(playerGridPos, discoveryRadius, archive);
         }
     }
 }

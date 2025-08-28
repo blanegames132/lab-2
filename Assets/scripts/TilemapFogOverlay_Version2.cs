@@ -9,7 +9,7 @@ public class TilemapFogOverlay : MonoBehaviour
     public Tilemap targetTilemap;
     public Tilemap fogTilemap;
     public TileBase fogTile;
-    public TileBase caveFogTile; // assign in inspector
+
     public TileHiddenSet tileHiddenSet;
     public Camera mainCamera;
     public TileCaveUtility caveUtility; // assign in inspector!
@@ -109,29 +109,8 @@ public class TilemapFogOverlay : MonoBehaviour
                 }
 
         // Overlay cave fog in the exact same way as TileCaveUtility (when targetTilemap is front)
-        if (caveUtility != null && targetTilemap == caveUtility.caveTilemap)
-        {
-            int caveZ = caveUtility.targetZLayer;
-            int surfaceY = caveSurfaceY; // Set this as needed!
-
-            for (int x = Mathf.Max(bounds.xMin, minX); x <= Mathf.Min(bounds.xMax - 1, maxX); x++)
-                for (int y = Mathf.Max(bounds.yMin, minY); y <= Mathf.Min(bounds.yMax - 1, maxY); y++)
-                {
-                    // Use the same check as TileCaveUtility
-                    if (caveUtility.IsCaveAt(x, y, caveZ, surfaceY))
-                    {
-                        Vector3Int caveCell = new Vector3Int(x, y, caveZ);
-                        Vector3 worldPos = targetTilemap.CellToWorld(caveCell) + worldOffset;
-                        float dist = Vector2.Distance(new Vector2(worldPos.x, worldPos.y), new Vector2(camCenter.x, camCenter.y));
-                        if (dist > fogRadius) continue;
-
-                        Vector3Int fogCell = fogTilemap.WorldToCell(worldPos);
-                        newFogTiles.Add(fogCell);
-
-                        // Optionally, you can use a special cave fog tile here
-                    }
-                }
-        }
+     
+    
 
         // Remove edge fog if desired
         if (!reverseNextToAir)

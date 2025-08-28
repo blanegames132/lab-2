@@ -43,6 +43,28 @@ public class ChunkedWorldArchive
         }
         return allTiles;
     }
+    public void MarkCavesDiscoveredAroundPlayer(Vector3 playerPosition, float radius = 10f)
+    {
+        bool changed = false;
+        foreach (var pair in AllTiles())
+        {
+            Vector3Int pos = pair.Key;
+            TileData tileData = pair.Value;
+            if (tileData.blockTagOrName == "cave")
+            {
+                float dist = Vector3.Distance(playerPosition, pos);
+                if (dist <= radius && !tileData.discovered)
+                {
+                    tileData.discovered = true;
+                    SetTile(pos, tileData);
+                    changed = true;
+                    Debug.Log($"Discovered cave at {pos} (distance {dist:F2})");
+                }
+            }
+        }
+        if (changed)
+            SaveAll();
+    }
 
     public bool HasChunk(Vector2Int key)
     {

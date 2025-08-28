@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using static TileInfiniteCameraSpawner;
 
 [Serializable]
 public class TilemapZSpacing
@@ -16,6 +17,7 @@ public class TilemapZSpacing
 public class Biome
 {
     public string name;
+
 
     public TileBase surfaceTile;     // e.g. grass, sand, snow
     public TileBase subsurfaceTile;  // e.g. soil, sand, ice (just under surface)
@@ -47,6 +49,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] private float hillCurveRandomJitter;
     [SerializeField] private float hillRandomAmplitude;
     [SerializeField] private float hillVerticalShift;
+    
 
     [Header("Tilemap Setup")]
     [SerializeField] public Tilemap groundTilemap;
@@ -104,13 +107,40 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     private HashSet<Vector3Int> activeTiles = new HashSet<Vector3Int>();
     private HashSet<Vector3Int> previouslyHidden = new HashSet<Vector3Int>();
     private HashSet<Vector3Int> previouslyHiddenMidFront = new HashSet<Vector3Int>();
-
+    [Header("Chunk Update Manager")]
+    [SerializeField] private ChunkUpdateManager chunkUpdateManager; // assign in inspector or create in Awake
     public static HashSet<Vector3Int> deletedTiles = new HashSet<Vector3Int>();
-    private ChunkedWorldArchive worldArchive;
+    [SerializeField] private ChunkedWorldArchive worldArchive;
+
     private System.Random biomeRand;
     private Dictionary<Vector2Int, int> chunkBiomes = new();
 
     private Vector3Int lastPlayerCell = new Vector3Int(int.MinValue, int.MinValue, int.MinValue);
+    private BoundsInt GetCameraWorldBounds()
+    {
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            Debug.LogWarning("No main camera found for TileInfiniteCameraSpawner");
+            return new BoundsInt(Vector3Int.zero, new Vector3Int(1, 1, 1));
+        }
+
+        // Assume orthographic camera
+        float camHeight = cam.orthographicSize * 2f;
+        float camWidth = camHeight * cam.aspect;
+
+        Vector3 camPos = cam.transform.position;
+        int minX = Mathf.FloorToInt(camPos.x - camWidth / 2f);
+        int maxX = Mathf.CeilToInt(camPos.x + camWidth / 2f);
+        int minY = Mathf.FloorToInt(camPos.y - camHeight / 2f);
+        int maxY = Mathf.CeilToInt(camPos.y + camHeight / 2f);
+
+        // Z: use player's z as the primary plane
+        int minZ = Mathf.FloorToInt(playerTransform != null ? playerTransform.position.z : 0);
+        int sizeZ = 1;
+
+        return new BoundsInt(minX, minY, minZ, maxX - minX + 1, maxY - minY + 1, sizeZ);
+    }
 
     void Awake()
     {
@@ -134,6 +164,15 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             worldArchive = new ChunkedWorldArchive(usedSeedString);
         else
             worldArchive = null;
+
+        // Automatically find or add chunkUpdateManager if not assigned
+        if (chunkUpdateManager == null)
+        {
+            chunkUpdateManager = GetComponent<ChunkUpdateManager>();
+            if (chunkUpdateManager == null)
+                chunkUpdateManager = gameObject.AddComponent<ChunkUpdateManager>();
+            chunkUpdateManager.spawner = this;
+        }
     }
 
     void OnValidate()
@@ -361,48 +400,41 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         bool isSurface,
         int chunkX,
         Vector3Int playerPos,
-        float halfWidth
+        float halfWidth,
+        float discoveryRadius // <-- new param!
     )
     {
         if (!(enableWorldArchive && worldArchive != null)) return;
-        if (worldArchive.TryGetTile(pos) != null) return; // already archived
+        var existing = worldArchive.TryGetTile(pos);
+        if (existing != null) return; // already archived
 
         int surfaceY = GetSurfaceY(x, z);
         bool isCave = caveUtility != null && caveUtility.IsCaveAt(x, y, z, surfaceY);
         int buffer = GetChunkBuffer(chunkX, z);
-        int minX = playerPos.x - (int)halfWidth - buffer;
-        int maxX = playerPos.x + (int)halfWidth + buffer;
         string tag = null;
 
         if (isCave)
-        {
             tag = "cave";
-        }
         else if (y == surfaceY)
-        {
             tag = "surface:" + GetBiomeTag(biomeIndex);
-        }
         else if (y < surfaceY && y >= surfaceY - 3)
-        {
             tag = "subsurface:" + GetBiomeTag(biomeIndex);
-        }
         else if (y < surfaceY - 3 && y > worldBottomY)
-        {
             tag = "ground:" + GetBiomeTag(biomeIndex);
-        }
         else if (y == worldBottomY)
-        {
             tag = "bedrock:" + GetBiomeTag(biomeIndex);
-        }
         else
-        {
             tag = "air";
-        }
 
         if (string.IsNullOrEmpty(tag))
             tag = (UnityEngine.Random.value > 0.5f) ? "unt1" : "unt2";
 
-        worldArchive.SetTile(pos, new TileData { blockTagOrName = tag });
+        // ---- Discovery logic: mark as discovered on first archive if player is in radius
+        bool shouldDiscover = false;
+        if (tag == "cave" && Vector3.Distance(playerPos, pos) <= discoveryRadius)
+            shouldDiscover = true;
+
+        worldArchive.SetTile(pos, new TileData { blockTagOrName = tag, discovered = shouldDiscover });
     }
 
     private void BatchDrawFromArchive(
@@ -442,6 +474,9 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         {
             lastTriggeredPlayerCell = playerCell;
             UpdateWorldIfNeeded(playerCell);
+
+            // Only use playerCell, don't redeclare it
+            worldArchive.MarkCavesDiscoveredAroundPlayer(playerCell);
         }
     }
 
@@ -489,20 +524,38 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         foreach (var tile in toRemove)
             activeTiles.Remove(tile);
 
+        // ---- NEW CHUNK SPAWN/QUEUE LOGIC ----
+        BoundsInt camBounds = GetCameraWorldBounds();
+        int camBuffer = 3;
         for (int z_i = 0; z_i < zs.Length; z_i++)
         {
             int z = zs[z_i];
             for (int chunkX = chunkGenLeft; chunkX <= chunkGenRight; chunkX++)
             {
+                int startX = chunkX * ChunkSize;
+                int endX = startX + ChunkSize - 1;
+                bool inCamera = endX >= (camBounds.xMin - camBuffer) && startX <= (camBounds.xMax + camBuffer)
+                                && z >= (camBounds.z - camBuffer) && z <= (camBounds.z + camBuffer);
                 bool render = chunkX >= chunkRenderLeft && chunkX <= chunkRenderRight;
-                SpawnOrLoadChunk(chunkX, z, buildBottom, maxY, playerZ, render);
+                if (inCamera)
+                {
+                    SpawnOrLoadChunk(chunkX, z, buildBottom, maxY, playerZ, render);
+                }
+                else if (chunkUpdateManager != null)
+                {
+                    // Enqueue for slow update
+                    chunkUpdateManager.RequestChunk(chunkX, z, buildBottom, maxY, playerZ, render,
+                        new Vector3((startX + endX) * 0.5f, (buildBottom + maxY) * 0.5f, z));
+                }
             }
         }
+        // ---- END NEW LOGIC ----
 
+        // ... rest of your UpdateWorldIfNeeded code ...
+        // (hidden tile, cave, preview, etc.)
         if (tileHiddenSet != null)
         {
             var currentlyHidden = tileHiddenSet.GetTilesToHide(playerTransform.position);
-
             foreach (var pos in currentlyHidden)
                 frontTilemap.SetTile(pos, hideTileAsset);
             foreach (var pos in previouslyHidden)
@@ -548,7 +601,9 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         // Get player position and halfWidth for buffer calculation
         Vector3Int playerCell = Vector3Int.FloorToInt(playerTransform.position);
         float halfWidth = 10f; // Use your preferred width value here
+        float caveDiscoveryRadius = 10f; // You can make this a [SerializeField] field if preferred
 
+        // === ARCHIVE UPDATES (sequential, per tile) ===
         for (int x = startX; x <= endX; x++)
         {
             float hillValue = GetHillValue(x, z);
@@ -557,7 +612,8 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
             if (render && !deletedTiles.Contains(surfacePos))
             {
-                ArchiveTileIfNeeded(surfacePos, x, surfaceY, z, biomeIndex, isSurface: true, chunkX, playerCell, halfWidth);
+                // ARCHIVE UPDATE: Archive surface tile
+                ArchiveTileIfNeeded(surfacePos, x, surfaceY, z, biomeIndex, true, chunkX, playerCell, halfWidth, caveDiscoveryRadius);
                 activeTiles.Add(surfacePos);
             }
             for (int y = surfaceY - 1; y >= buildBottom; y--)
@@ -565,14 +621,16 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
                 Vector3Int dirtPos = new Vector3Int(x, y, z);
                 if (render && !deletedTiles.Contains(dirtPos))
                 {
-                    ArchiveTileIfNeeded(dirtPos, x, y, z, biomeIndex, isSurface: false, chunkX, playerCell, halfWidth);
+                    // ARCHIVE UPDATE: Archive dirt tile
+                    ArchiveTileIfNeeded(dirtPos, x, y, z, biomeIndex, false, chunkX, playerCell, halfWidth, caveDiscoveryRadius);
                     activeTiles.Add(dirtPos);
                 }
             }
         }
-    
+        // === END OF ARCHIVE UPDATES ===
 
-    var positions = new List<Vector3Int>[tilemapZSpacings.Count];
+        // Drawing tiles from archive, not modifying archive
+        var positions = new List<Vector3Int>[tilemapZSpacings.Count];
         var tiles = new List<TileBase>[tilemapZSpacings.Count];
         for (int i = 0; i < tilemapZSpacings.Count; i++)
         {
@@ -603,63 +661,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
                 tilemapZSpacings[i].tilemap.SetTiles(positions[i].ToArray(), tiles[i].ToArray());
         }
     }
-    public class ChunkUpdateManager : MonoBehaviour
-    {
-        public TileInfiniteCameraSpawner spawner;
-        public int maxChunksPerFrame = 2; // Limit for performance
-        public float updateDistance = 64f; // Only update chunks within this distance
 
-        private Queue<ChunkRequest> chunkQueue = new Queue<ChunkRequest>();
-
-        void Update()
-        {
-            Vector3 playerPos = spawner.playerTransform.position;
-
-            // Remove queued chunks if too far from player
-            int count = chunkQueue.Count;
-            for (int i = 0; i < count; i++)
-            {
-                var req = chunkQueue.Dequeue();
-                float dist = Vector3.Distance(playerPos, req.centerWorldPos);
-                if (dist < updateDistance)
-                    chunkQueue.Enqueue(req);
-            }
-
-            // Process a few chunks per frame
-            int processed = 0;
-            while (chunkQueue.Count > 0 && processed < maxChunksPerFrame)
-            {
-                var req = chunkQueue.Dequeue();
-                float dist = Vector3.Distance(playerPos, req.centerWorldPos);
-                if (dist < updateDistance)
-                {
-                    spawner.SpawnOrLoadChunk(req.chunkX, req.z, req.buildBottom, req.maxY, req.playerZ, req.render);
-                    processed++;
-                }
-            }
-        }
-
-        public void RequestChunk(int chunkX, int z, int buildBottom, int maxY, int playerZ, bool render, Vector3 centerWorldPos)
-        {
-            chunkQueue.Enqueue(new ChunkRequest
-            {
-                chunkX = chunkX,
-                z = z,
-                buildBottom = buildBottom,
-                maxY = maxY,
-                playerZ = playerZ,
-                render = render,
-                centerWorldPos = centerWorldPos
-            });
-        }
-
-        private struct ChunkRequest
-        {
-            public int chunkX, z, buildBottom, maxY, playerZ;
-            public bool render;
-            public Vector3 centerWorldPos;
-        }
-    }
 
     private void UpdateHillCurvePreview(int zLayer)
     {
