@@ -52,4 +52,5 @@ public class EnemyFlipXOnTimer : MonoBehaviour
             transform.localScale = scale;
         }
     }
+    
 }

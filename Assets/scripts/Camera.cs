@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class camera : MonoBehaviour
 {
-    [SerializeField] private float offsetDistance = -2f;  // How far ahead/behind the camera moves
+    [SerializeField] private float offsetDistance = 2f;  // How far ahead/behind the camera moves
     [SerializeField] private float smoothSpeed = 5f;     // Camera follow speed
     [SerializeField] private float deadZone = 0.05f;     // Ignore tiny velocity to avoid jitter
     [SerializeField] private float zoomSpeed = 5f;       // How fast the zoom changes

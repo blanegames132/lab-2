@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using static TileInfiniteCameraSpawner;
+
 
 [Serializable]
 public class TilemapZSpacing
@@ -38,7 +38,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField, Tooltip("The actual string seed used (random if blank at start).")]
     private string usedSeedString;
     public List<Tilemap> biomeTilemaps; // Assign in inspector
-
+    private Dictionary<(int, int), GameObject> chunkMap = new();
     [Header("Hill Shape Controls")]
     [SerializeField] private AnimationCurve hillCurve;
     [SerializeField] public float hillHeight;
@@ -49,7 +49,11 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     [SerializeField] private float hillCurveRandomJitter;
     [SerializeField] private float hillRandomAmplitude;
     [SerializeField] private float hillVerticalShift;
-    
+
+
+    [Header("Delete Queue Affected Tilemaps")]
+    [SerializeField] private List<Tilemap> deleteQueueTilemaps = new List<Tilemap>();
+
 
     [Header("Tilemap Setup")]
     [SerializeField] public Tilemap groundTilemap;
@@ -106,14 +110,30 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     private AnimationCurve randomHillCurve;
     private HashSet<Vector3Int> activeTiles = new HashSet<Vector3Int>();
     private HashSet<Vector3Int> previouslyHidden = new HashSet<Vector3Int>();
+
+
     private HashSet<Vector3Int> previouslyHiddenMidFront = new HashSet<Vector3Int>();
     [Header("Chunk Update Manager")]
     [SerializeField] private ChunkUpdateManager chunkUpdateManager; // assign in inspector or create in Awake
     public static HashSet<Vector3Int> deletedTiles = new HashSet<Vector3Int>();
-    [SerializeField] private ChunkedWorldArchive worldArchive;
+    public ChunkedWorldArchive worldArchive;
 
     private System.Random biomeRand;
     private Dictionary<Vector2Int, int> chunkBiomes = new();
+    // --- New Deletion Tilemap for Delete Queue ---
+    [Header("Delete Queue Tilemap")]
+    [SerializeField] public Tilemap deleteQueueTilemap; // assign in inspector or add in code
+
+    // --- Defensive tile deletion queue for new tilemap ---
+    private Queue<Vector3Int> deleteQueuePositions = new Queue<Vector3Int>();
+
+    // Defensive: call this to add a tile to the delete queue tilemap
+    public void QueueTileForDeleteQueueTilemap(Vector3Int pos)
+    {
+        if (deleteQueueTilemap != null)
+            deleteQueuePositions.Enqueue(pos);
+    }
+
 
     private Vector3Int lastPlayerCell = new Vector3Int(int.MinValue, int.MinValue, int.MinValue);
     private BoundsInt GetCameraWorldBounds()
@@ -140,6 +160,66 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         int sizeZ = 1;
 
         return new BoundsInt(minX, minY, minZ, maxX - minX + 1, maxY - minY + 1, sizeZ);
+    }
+
+
+
+    public bool IsInPlayerZSafeRange(Vector3Int pos)
+    {
+        if (playerTransform == null) return false;
+        int playerZ = Mathf.RoundToInt(playerTransform.position.z);
+        // Acceptable range is playerZ-2 to playerZ+2 inclusive
+        return pos.z >= playerZ - 2 && pos.z <= playerZ + 2;
+    }
+
+    public void QueueTileForDeleteQueueTilemaps(Vector3Int pos)
+    {
+        if (deleteQueueTilemaps != null && deleteQueueTilemaps.Count > 0 && !IsInPlayerZSafeRange(pos))
+            deleteQueuePositions.Enqueue(pos);
+    }
+
+    private void ProcessDeleteQueueTilemaps(int maxPerFrame = 100)
+    {
+        int count = Mathf.Min(maxPerFrame, deleteQueuePositions.Count);
+        for (int i = 0; i < count; i++)
+        {
+            var pos = deleteQueuePositions.Dequeue();
+            if (!IsInPlayerZSafeRange(pos))
+            {
+                foreach (var tilemap in deleteQueueTilemaps)
+                {
+                    if (tilemap != null)
+                        tilemap.SetTile(pos, null);
+                }
+            }
+            else
+            {
+                // Immediately restore tile to the correct tilemap/layer
+                RestoreTileToCorrectTilemap(pos);
+            }
+        }
+    }
+    private void RestoreTileToCorrectTilemap(Vector3Int pos)
+    {
+        // Find the correct z-layer for the tile
+        int playerZ = playerTransform ? Mathf.RoundToInt(playerTransform.position.z) : 0;
+        int biomeIndex = GetChunkBiome(pos.x / ChunkSize, pos.z);
+        TileBase tile = GetActualTileAssetAtCell(pos);
+
+        // Find which tilemap this position should go in
+        for (int i = 0; i < tilemapZSpacings.Count; i++)
+        {
+            var spacing = tilemapZSpacings[i];
+            if (spacing.tilemap != null && pos.z == playerZ + (int)spacing.zSpacing)
+            {
+                spacing.tilemap.SetTile(pos, tile);
+                break;
+            }
+        }
+    }
+    private void Update()
+    {
+        ProcessDeleteQueueTilemaps(100);
     }
 
     void Awake()
@@ -253,6 +333,18 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             }
         }
         return tile;
+    }
+    public void SetTileDefensivelyWithDeleteQueue(Tilemap tilemap, Vector3Int pos, TileBase tile)
+    {
+        QueueTileForDeleteQueueTilemap(pos); // Always queue for deletion in special tilemap
+        SetTileDefensively(tilemap, pos, tile);
+    }
+
+    public void SetTileDefensively(Tilemap tilemap, Vector3Int pos, TileBase tile)
+    {
+        if (chunkUpdateManager != null)
+            chunkUpdateManager.QueueTileForDeletion(tilemap, pos); // Always queue for deletion first!
+        tilemap.SetTile(pos, tile);
     }
 
     void ApplySeedRandomization()
@@ -437,50 +529,99 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         worldArchive.SetTile(pos, new TileData { blockTagOrName = tag, discovered = shouldDiscover });
     }
 
-    private void BatchDrawFromArchive(
-        Vector3Int pos, int z, int playerZ, int biomeIndex,
-        List<Vector3Int>[] positions, List<TileBase>[] tiles)
+    public void SpawnOrLoadChunk_Defensive(int chunkX, int z, int buildBottom, int maxY, int playerZ, bool render)
+    {
+        int biomeIndex = GetChunkBiome(chunkX, z);
+        int startX = chunkX * ChunkSize;
+        int endX = startX + ChunkSize - 1;
+        Vector3Int playerCell = Vector3Int.FloorToInt(playerTransform.position);
+        float halfWidth = 10f;
+        float caveDiscoveryRadius = 10f;
+
+        // ARCHIVE UPDATES (same as your original SpawnOrLoadChunk)
+        for (int x = startX; x <= endX; x++)
+        {
+            float hillValue = GetHillValue(x, z);
+            int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
+
+            Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
+            if (render && !deletedTiles.Contains(surfacePos) && ShouldSpawnTile(surfacePos, playerCell))
+            {
+                ArchiveTileIfNeeded(surfacePos, x, surfaceY, z, biomeIndex, true, chunkX, playerCell, halfWidth, caveDiscoveryRadius);
+                activeTiles.Add(surfacePos);
+            }
+            for (int y = surfaceY - 1; y >= buildBottom; y--)
+            {
+                Vector3Int dirtPos = new Vector3Int(x, y, z);
+                if (render && !deletedTiles.Contains(dirtPos) && ShouldSpawnTile(dirtPos, playerCell))
+                {
+                    ArchiveTileIfNeeded(dirtPos, x, y, z, biomeIndex, false, chunkX, playerCell, halfWidth, caveDiscoveryRadius);
+                    activeTiles.Add(dirtPos);
+                }
+            }
+        }
+
+        // DRAWING TILES FROM ARCHIVE - DEFENSIVELY
+        for (int x = startX; x <= endX; x++)
+        {
+            float hillValue = GetHillValue(x, z);
+            int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
+
+            Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
+            if (render && !deletedTiles.Contains(surfacePos) && ShouldSpawnTile(surfacePos, playerCell))
+                BatchDrawFromArchive_Defensive(surfacePos, z, playerZ, biomeIndex);
+
+            for (int y = surfaceY - 1; y >= buildBottom; y--)
+            {
+                Vector3Int dirtPos = new Vector3Int(x, y, z);
+                if (render && !deletedTiles.Contains(dirtPos) && ShouldSpawnTile(dirtPos, playerCell))
+                    BatchDrawFromArchive_Defensive(dirtPos, z, playerZ, biomeIndex);
+            }
+        }
+
+        DeleteTilesAbovePlayer(45); // cleanup
+    }
+
+    // Helper: Defensive version of BatchDrawFromArchive
+    private void BatchDrawFromArchive_Defensive(Vector3Int pos, int z, int playerZ, int biomeIndex)
     {
         if (!(enableWorldArchive && worldArchive != null)) return;
-
         TileData tileData = worldArchive.TryGetTile(pos);
-        if (tileData == null) return; // Only draw if archived
-
+        if (tileData == null) return;
         TileBase resolvedTile = ResolveTileFromTag(pos, biomeIndex, tileData.blockTagOrName);
 
-        // Place into the correct z-spaced tilemap
+        // Place into the correct z-spaced tilemap, using SetTileDefensively
         for (int i = 0; i < tilemapZSpacings.Count; i++)
         {
             var spacing = tilemapZSpacings[i];
             if (spacing.tilemap != null && z == playerZ + (int)spacing.zSpacing)
             {
-                positions[i].Add(pos);
-                tiles[i].Add(resolvedTile);
+                SetTileDefensively(spacing.tilemap, pos, resolvedTile);
                 break;
             }
         }
     }
 
-    private Vector3Int lastTriggeredPlayerCell = new Vector3Int(int.MinValue, int.MinValue, int.MinValue);
-
-    private void Update()
+    public void RemoveChunk(int chunkX, int z)
     {
-        if (playerTransform == null) return;
-        if (groundTilemap == null || frontTilemap == null || middleFrontTilemap == null || middleBackTilemap == null || backTilemap == null) return;
-
-        Vector3Int playerCell = Vector3Int.FloorToInt(playerTransform.position);
-
-        if (playerCell != lastTriggeredPlayerCell)
+        var key = (chunkX, z);
+        if (chunkMap.TryGetValue(key, out GameObject chunkObj) && chunkObj != null)
         {
-            lastTriggeredPlayerCell = playerCell;
-            UpdateWorldIfNeeded(playerCell);
-
-            // Only use playerCell, don't redeclare it
-            worldArchive.MarkCavesDiscoveredAroundPlayer(playerCell);
+            Destroy(chunkObj);           // Destroys the chunk GameObject
+            chunkMap.Remove(key);        // Remove from tracking dictionary
+            Debug.Log($"Chunk at ({chunkX}, {z}) removed.");
+        }
+        else
+        {
+            Debug.Log($"No chunk found at ({chunkX}, {z}) to remove.");
         }
     }
 
-    private void UpdateWorldIfNeeded(Vector3Int playerPos)
+    private Vector3Int lastTriggeredPlayerCell = new Vector3Int(int.MinValue, int.MinValue, int.MinValue);
+
+
+
+    public void UpdateWorldIfNeeded(Vector3Int playerPos)
     {
         int playerZ = playerPos.z;
         int playerY = playerPos.y;
@@ -539,7 +680,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
                 bool render = chunkX >= chunkRenderLeft && chunkX <= chunkRenderRight;
                 if (inCamera)
                 {
-                    SpawnOrLoadChunk(chunkX, z, buildBottom, maxY, playerZ, render);
+                    SpawnOrLoadChunk_Defensive(chunkX, z, buildBottom, maxY, playerZ, render);
                 }
                 else if (chunkUpdateManager != null)
                 {
@@ -583,84 +724,47 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
             previouslyHiddenMidFront = currentlyHiddenMidFront;
         }
-        if (enableWorldArchive && worldArchive != null && caveUtility != null)
+        if (enableWorldArchive && worldArchive != null && caveUtility != null && playerTransform != null)
         {
-            caveUtility.DrawCavesFromArchive(worldArchive);
+            playerZ = Mathf.RoundToInt(playerTransform.position.z);
+            caveUtility.DrawCavesFromArchive(worldArchive, playerZ);
         }
 
         UpdateHillCurvePreview(playerZ);
     }
 
-    public void SpawnOrLoadChunk(int chunkX, int z, int buildBottom, int maxY, int playerZ, bool render)
+    public bool ShouldSpawnTile(Vector3Int pos, Vector3Int playerPos, int maxAbovePlayer = 40)
     {
-        int biomeIndex = GetChunkBiome(chunkX, z);
+        return pos.y <= playerPos.y + maxAbovePlayer;
+    }
 
-        int startX = chunkX * ChunkSize;
-        int endX = startX + ChunkSize - 1;
-
-        // Get player position and halfWidth for buffer calculation
+    /// <summary>
+    /// Deletes any tiles that are more than 'maxAbovePlayer' above the player. 
+    /// Call this after chunk/tile spawn to ensure the world is clean. 
+    /// </summary>
+    public void DeleteTilesAbovePlayer(int maxAbovePlayer = 45)
+    {
+        if (groundTilemap == null || playerTransform == null) return;
         Vector3Int playerCell = Vector3Int.FloorToInt(playerTransform.position);
-        float halfWidth = 10f; // Use your preferred width value here
-        float caveDiscoveryRadius = 10f; // You can make this a [SerializeField] field if preferred
 
-        // === ARCHIVE UPDATES (sequential, per tile) ===
-        for (int x = startX; x <= endX; x++)
+        // Copy to avoid modifying during iteration
+        var tilesToDelete = new List<Vector3Int>();
+        foreach (var tile in activeTiles)
         {
-            float hillValue = GetHillValue(x, z);
-            int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
-
-            Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
-            if (render && !deletedTiles.Contains(surfacePos))
+            if (tile.y > playerCell.y + maxAbovePlayer)
             {
-                // ARCHIVE UPDATE: Archive surface tile
-                ArchiveTileIfNeeded(surfacePos, x, surfaceY, z, biomeIndex, true, chunkX, playerCell, halfWidth, caveDiscoveryRadius);
-                activeTiles.Add(surfacePos);
-            }
-            for (int y = surfaceY - 1; y >= buildBottom; y--)
-            {
-                Vector3Int dirtPos = new Vector3Int(x, y, z);
-                if (render && !deletedTiles.Contains(dirtPos))
-                {
-                    // ARCHIVE UPDATE: Archive dirt tile
-                    ArchiveTileIfNeeded(dirtPos, x, y, z, biomeIndex, false, chunkX, playerCell, halfWidth, caveDiscoveryRadius);
-                    activeTiles.Add(dirtPos);
-                }
-            }
-        }
-        // === END OF ARCHIVE UPDATES ===
-
-        // Drawing tiles from archive, not modifying archive
-        var positions = new List<Vector3Int>[tilemapZSpacings.Count];
-        var tiles = new List<TileBase>[tilemapZSpacings.Count];
-        for (int i = 0; i < tilemapZSpacings.Count; i++)
-        {
-            positions[i] = new List<Vector3Int>();
-            tiles[i] = new List<TileBase>();
-        }
-
-        for (int x = startX; x <= endX; x++)
-        {
-            float hillValue = GetHillValue(x, z);
-            int surfaceY = Mathf.RoundToInt(hillValue * hillHeight);
-
-            Vector3Int surfacePos = new Vector3Int(x, surfaceY, z);
-            if (render && !deletedTiles.Contains(surfacePos))
-                BatchDrawFromArchive(surfacePos, z, playerZ, biomeIndex, positions, tiles);
-
-            for (int y = surfaceY - 1; y >= buildBottom; y--)
-            {
-                Vector3Int dirtPos = new Vector3Int(x, y, z);
-                if (render && !deletedTiles.Contains(dirtPos))
-                    BatchDrawFromArchive(dirtPos, z, playerZ, biomeIndex, positions, tiles);
+                tilesToDelete.Add(tile);
             }
         }
 
-        for (int i = 0; i < tilemapZSpacings.Count; i++)
+        foreach (var pos in tilesToDelete)
         {
-            if (tilemapZSpacings[i].tilemap != null && positions[i].Count > 0)
-                tilemapZSpacings[i].tilemap.SetTiles(positions[i].ToArray(), tiles[i].ToArray());
+            DeleteTile(pos);
+            activeTiles.Remove(pos); // Remove from active set
         }
     }
+
+
 
 
     private void UpdateHillCurvePreview(int zLayer)
@@ -772,6 +876,33 @@ public void SaveGame()
         if (pos.y > surfaceY) return "air";
         if (caveUtility != null && caveUtility.IsCaveAt(pos.x, pos.y, pos.z, surfaceY)) return "cave";
         return (pos.y == surfaceY) ? GetBiomeTag(biomeIndex) : "ground:" + GetBiomeTag(biomeIndex);
+    }
+    public void CullOffCameraChunks(int playerZ)
+    {
+        BoundsInt camBounds = GetCameraWorldBounds();
+        int margin = 2; // Give some buffer
+
+        foreach (var pair in chunkMap)
+        {
+            var (chunkX, z) = pair.Key;
+            var chunkGO = pair.Value;
+            if (chunkGO == null) continue;
+
+            bool shouldRender = IsChunkInCamera(chunkX, z, playerZ, margin);
+            if (chunkGO.activeSelf != shouldRender)
+                chunkGO.SetActive(shouldRender);
+        }
+    }
+    public bool IsChunkInCamera(int chunkX, int z, int playerZ, int margin = 2)
+    {
+        BoundsInt camBounds = GetCameraWorldBounds();
+        int startX = chunkX * ChunkSize;
+        int endX = startX + ChunkSize - 1;
+
+        // Only check horizontal (x) range and z, not y
+        bool inX = endX >= (camBounds.xMin - margin) && startX <= (camBounds.xMax + margin);
+        bool inZ = z >= (camBounds.z - margin) && z <= (camBounds.z + margin);
+        return inX && inZ;
     }
 
 

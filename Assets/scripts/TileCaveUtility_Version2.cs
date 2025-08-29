@@ -5,6 +5,8 @@ using UnityEngine.Tilemaps;
 
 public class TileCaveUtility : MonoBehaviour
 {
+    public TileInfiniteCameraSpawner spawner;
+    private Vector3Int lastTriggeredPlayerCell = new Vector3Int(int.MinValue, int.MinValue, int.MinValue);
     [Header("Cave Generation Controls")]
     public float caveFrequency = 0.09f;
     public float caveThreshold = 0.5f;
@@ -51,13 +53,17 @@ public class TileCaveUtility : MonoBehaviour
     [Tooltip("Tilemap to spawn cave assets into (Fog Debug). Assign in Inspector.")]
     public Tilemap caveTilemapFog;
 
+    [Header("Hidden/Backup Tilemap")]
+    [Tooltip("Tilemap to spawn hidden cave tiles into if below threshold. Assign in Inspector.")]
+    public Tilemap caveTilemapHidden;
+
     public Transform playerTransform;
     public bool IsInitialized { get; private set; } = false;
 
-    public int minX = -100;
-    public int maxX = 100;
-    public int minY = -120;
-    public int maxY = 30;
+    public int minX = int.MinValue;
+    public int maxX = int.MaxValue;
+    public int minY = int.MinValue;
+    public int maxY = int.MaxValue;
     public int z = 0;
 
     [Header("Debug Controls (Normal)")]
@@ -67,7 +73,6 @@ public class TileCaveUtility : MonoBehaviour
     [Header("Debug Controls (Fog)")]
     public bool debugFog = true;
     public int targetZLayerFog = 0;
-
     void Awake()
     {
         IsInitialized = true;
@@ -226,112 +231,125 @@ public class TileCaveUtility : MonoBehaviour
     /// <summary>
     /// Mark all cave tiles within radius as discovered, remove fog, and persist to archive.
     /// </summary>
-    public void DiscoverAndDeleteCavesInRadius(Vector3 center, float radius, ChunkedWorldArchive archive)
+
+public void DrawCavesFromArchive(
+        ChunkedWorldArchive archive,
+        int playerZ,
+        float threshold = 0.5f)
     {
-        var toDelete = new List<Vector3Int>();
+        if (archive == null || caveTilemap == null || caveTilemapFog == null || caveTilemapHidden == null)
+            return;
+
+        // Clear all 3 tilemaps for relevant z layers
+        foreach (var pos in caveTilemap.cellBounds.allPositionsWithin)
+            if (pos.z == playerZ)
+                caveTilemap.SetTile(pos, null);
+        foreach (var pos in caveTilemapFog.cellBounds.allPositionsWithin)
+            if (pos.z == playerZ + 1)
+                caveTilemapFog.SetTile(pos, null);
+        foreach (var pos in caveTilemapHidden.cellBounds.allPositionsWithin)
+            if (pos.z == playerZ - 1)
+                caveTilemapHidden.SetTile(pos, null);
+
+        var spawner = GetComponent<TileInfiniteCameraSpawner>();
+        float hillHeight = spawner != null ? spawner.hillHeight : 1f;
+
         foreach (var pair in archive.AllTiles())
-        {
-            Vector3Int pos = pair.Key;
-            TileData data = pair.Value;
-            if (Vector3.Distance(center, pos) <= radius && data != null && data.blockTagOrName == "cave")
-            {
-                toDelete.Add(pos);
-            }
-        }
-        foreach (var pos in toDelete)
-        {
-            archive.RemoveTile(pos);
-            Debug.Log($"Cave tile deleted from archive at {pos}");
-        }
-        if (toDelete.Count > 0)
-            archive.SaveAll();
-
-        // Clear tiles in both tilemaps, all z
-        void ClearAllTilesInTilemap(Tilemap tilemap)
-        {
-            if (tilemap == null) return;
-            foreach (var pos in tilemap.cellBounds.allPositionsWithin)
-            {
-                if (Vector3.Distance(center, pos) <= radius)
-                {
-                    if (tilemap.GetTile(pos) != null)
-                    {
-                        tilemap.SetTile(pos, null);
-                        Debug.Log($"Tile cleared from tilemap at {pos}");
-                    }
-                }
-            }
-        }
-        ClearAllTilesInTilemap(caveTilemap);
-        ClearAllTilesInTilemap(caveTilemapFog);
-    }
-
-    /// <summary>
-    /// Draw caves: debug on caveTilemap, fog on caveTilemapFog, all z
-    /// </summary>
-    public void DrawCavesFromArchive(ChunkedWorldArchive archive)
-    {
-        if (archive == null)
-        {
-            UnityEngine.Debug.LogError("TileCaveUtility: No archive provided.");
-            return;
-        }
-        if (visibleCaveTileAsset == null)
-        {
-            UnityEngine.Debug.LogError("TileCaveUtility: No cave tile asset assigned in Inspector.");
-            return;
-        }
-        if (caveTilemap == null)
-        {
-            UnityEngine.Debug.LogError("TileCaveUtility: No cave Tilemap assigned in Inspector.");
-            return;
-        }
-        if (caveTilemapFog == null)
-        {
-            UnityEngine.Debug.LogError("TileCaveUtility: No cave TilemapFog assigned in Inspector.");
-            return;
-        }
-
-        var allTiles = archive.AllTiles();
-
-        foreach (var pair in allTiles)
         {
             Vector3Int gridPos = pair.Key;
             TileData tileData = pair.Value;
+            if (tileData == null || tileData.blockTagOrName != "cave") continue;
 
-            if (tileData != null && tileData.blockTagOrName == "cave")
+            // Defensive: Only spawn UNDISCOVERED caves!
+            if (tileData.discovered)
             {
-                // Normal debug: always draw if debug is on
-                if (debug)
-                {
-                    HandleCaveAsset(gridPos);
-                }
-
-                // FOG DEBUG: draw ONLY if NOT discovered, else remove from fog tilemap
-                if (debugFog)
-                {
-                    if (!tileData.discovered)
-                    {
-                        HandleCaveAssetFog(gridPos); // show tile in fog
-                    }
-                    else
-                    {
-                        caveTilemapFog.SetTile(gridPos, null); // remove tile from fog if discovered
-                    }
-                }
-
-                // Log discovered tiles
-                if (tileData.discovered)
-                {
-                    Debug.Log($"Tile at {gridPos} is discovered.");
-                }
+                // Remove from all 3 layers if it's discovered
+                caveTilemap.SetTile(gridPos, null);
+                caveTilemapFog.SetTile(gridPos, null);
+                caveTilemapHidden.SetTile(gridPos, null);
+                continue;
             }
+
+            int surfaceY = 0;
+            if (spawner != null)
+                surfaceY = Mathf.RoundToInt(spawner.GetHillValue(gridPos.x, gridPos.z) * hillHeight);
+
+            float val = CaveGenerator(gridPos.x, gridPos.y, gridPos.z, surfaceY);
+
+            // Player's current z: visible cave
+            if (gridPos.z == playerZ)
+            {
+                caveTilemap.SetTile(gridPos, val >= threshold ? visibleCaveTileAsset2 : null);
+                caveTilemapFog.SetTile(gridPos, null);
+                caveTilemapHidden.SetTile(gridPos, null);
+            }
+            // Player's z+1: fog/hidden above
+            else if (gridPos.z == playerZ + 1)
+            {
+                caveTilemap.SetTile(gridPos, null);
+                caveTilemapFog.SetTile(gridPos, val >= threshold ? visibleCaveTileAsset : null);
+                caveTilemapHidden.SetTile(gridPos, null);
+            }
+            // Player's z-1: fog/hidden below
+            else if (gridPos.z == playerZ - 1)
+            {
+                caveTilemap.SetTile(gridPos, null);
+                caveTilemapFog.SetTile(gridPos, null);
+                caveTilemapHidden.SetTile(gridPos, val >= threshold ? visibleCaveTileAsset : null);
+            }
+            // Any other z: clear all
             else
             {
                 caveTilemap.SetTile(gridPos, null);
                 caveTilemapFog.SetTile(gridPos, null);
+                caveTilemapHidden.SetTile(gridPos, null);
             }
         }
+    }
+
+    public void EnsureTileOnCorrectTilemap(Vector3Int gridPos, int playerZ)
+    {
+        if (caveTilemap == null || caveTilemapFog == null || caveTilemapHidden == null)
+            return;
+
+        // Remove from all tilemaps first
+        caveTilemap.SetTile(gridPos, null);
+        caveTilemapFog.SetTile(gridPos, null);
+        caveTilemapHidden.SetTile(gridPos, null);
+
+        // Place only on the correct tilemap based on z
+        if (gridPos.z == playerZ)
+        {
+            caveTilemap.SetTile(gridPos, visibleCaveTileAsset2);
+        }
+        else if (gridPos.z == playerZ + 1)
+        {
+            caveTilemapFog.SetTile(gridPos, visibleCaveTileAsset);
+        }
+        else if (gridPos.z == playerZ - 1)
+        {
+            caveTilemapHidden.SetTile(gridPos, visibleCaveTileAsset);
+        }
+        // Else, do not place anywhere
+    }
+    public void DiscoverAndMarkCavesInRadius(Vector3 center, float radius, ChunkedWorldArchive archive)
+    {
+        if (archive == null) return;
+
+        bool changed = false;
+        foreach (var pair in archive.AllTiles())
+        {
+            Vector3Int pos = pair.Key;
+            TileData data = pair.Value;
+            if (Vector3.Distance(center, pos) <= radius && data != null && data.blockTagOrName == "cave" && !data.discovered)
+            {
+                data.discovered = true;
+                archive.SetTile(pos, data);
+                changed = true;
+            }
+        }
+        if (changed)
+            archive.SaveAll();
     }
 
     public class FogOfWarSystem : MonoBehaviour
@@ -350,7 +368,7 @@ public class TileCaveUtility : MonoBehaviour
             Vector3Int playerGridPos = Vector3Int.FloorToInt(player.position);
 
             // Mark caves as discovered in radius and update fog (removes from archive)
-            tileCaveUtility.DiscoverAndDeleteCavesInRadius(playerGridPos, discoveryRadius, archive);
+            tileCaveUtility.DiscoverAndMarkCavesInRadius(playerGridPos, discoveryRadius, archive);
         }
     }
 }

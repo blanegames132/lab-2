@@ -14,23 +14,22 @@ public class ChunkedWorldArchive
     private const int ChunkSize = 16;
     private const int MaxChunksInMemory = 10;
     private const int SaveEveryNModifications = 20;
-    private const int UnloadBeyondChunks = 12; // safety bound for manual unload by distance
+    private const int UnloadBeyondChunks = 12;
 
-    private readonly Dictionary<(int x, int z), Chunk> loadedChunks = new Dictionary<(int x, int z), Chunk>();
-    private readonly LinkedList<(int x, int z)> chunkOrder = new LinkedList<(int x, int z)>();
-    private readonly HashSet<(int x, int z)> modifiedChunks = new HashSet<(int x, int z)>();
+    private readonly Dictionary<(int x, int z), Chunk> loadedChunks = new();
+    private readonly LinkedList<(int x, int z)> chunkOrder = new();
+    private readonly HashSet<(int x, int z)> modifiedChunks = new();
 
     private readonly string saveFolder;
     private bool hasManualSave = false;
     private int modificationCounter = 0;
 
-    // Global file I/O lock to serialize ALL reads/writes across the process
     private static readonly object FileIoLock = new object();
-    private Dictionary<Vector2Int, int> chunkBiomes = new Dictionary<Vector2Int, int>();
+    private Dictionary<Vector2Int, int> chunkBiomes = new();
 
-    // -----------------------------
-    // Returns all world tile positions and data (from loaded/in-memory chunks only, for speed)
-    // -----------------------------
+    /// <summary>
+    /// Returns all world tile positions and data (from loaded/in-memory chunks only, for speed)
+    /// </summary>
     public Dictionary<Vector3Int, TileData> AllTiles()
     {
         var allTiles = new Dictionary<Vector3Int, TileData>();
@@ -43,28 +42,6 @@ public class ChunkedWorldArchive
         }
         return allTiles;
     }
-    public void MarkCavesDiscoveredAroundPlayer(Vector3 playerPosition, float radius = 4f)
-    {
-        bool changed = false;
-        foreach (var pair in AllTiles())
-        {
-            Vector3Int pos = pair.Key;
-            TileData tileData = pair.Value;
-            if (tileData.blockTagOrName == "cave")
-            {
-                float dist = Vector3.Distance(playerPosition, pos);
-                if (dist <= radius && !tileData.discovered)
-                {
-                    tileData.discovered = true;
-                    SetTile(pos, tileData);
-                    changed = true;
-                    Debug.Log($"Discovered cave at {pos} (distance {dist:F2})");
-                }
-            }
-        }
-        if (changed)
-            SaveAll();
-    }
 
     public bool HasChunk(Vector2Int key)
     {
@@ -73,16 +50,13 @@ public class ChunkedWorldArchive
 
     public ChunkedWorldArchive(string seed)
     {
-        // Use Path.Combine for cross-platform compatibility
         string baseFolder = Path.Combine(Application.persistentDataPath, "mygame");
         string worldFolder = Path.Combine(baseFolder, "WorldSaves", seed);
         saveFolder = Path.Combine(worldFolder, "chunks");
 
-        // Ensure all directories exist
         if (!Directory.Exists(saveFolder))
             Directory.CreateDirectory(saveFolder);
 
-        // Register application quit event to save on exit
         Application.quitting += OnAppQuit;
     }
 
@@ -111,7 +85,6 @@ public class ChunkedWorldArchive
             return chunk.TryGetTile(pos);
         }
 
-        // Try load from disk
         if (File.Exists(ChunkPath(chunkCoords.x, chunkCoords.z)))
         {
             var loaded = LoadChunkFromDisk(chunkCoords.x, chunkCoords.z);
@@ -140,7 +113,6 @@ public class ChunkedWorldArchive
     // -----------------------------
     public void SaveAll()
     {
-        // copy to avoid collection modification issues
         var toSave = new List<(int x, int z)>(modifiedChunks);
 
         foreach (var chunkCoord in toSave)
@@ -246,8 +218,6 @@ public class ChunkedWorldArchive
     {
         string path = ChunkPath(x, z);
 
-        // Never delete during gameplay; always persist current state (even empty)
-        // Use temp file + atomic replacement, with a global lock to serialize writes
         lock (FileIoLock)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -255,25 +225,21 @@ public class ChunkedWorldArchive
             string json = JsonUtility.ToJson(chunk);
             string tmpPath = path + ".tmp";
 
-            // Write to temp file with no sharing
             using (var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
             using (var sw = new StreamWriter(fs))
             {
                 sw.Write(json);
                 sw.Flush();
-                fs.Flush(true); // ensure data hits disk
+                fs.Flush(true);
             }
 
-            // Replace target atomically if possible
             try
             {
                 if (File.Exists(path))
                 {
-                    // On some Unity/.NET profiles File.Replace may not exist; fallback safely
 #if NETSTANDARD || NET_4_6 || NET_4_6_1 || NET_4_7 || NET_4_7_1
                     File.Replace(tmpPath, path, null);
 #else
-                    // Fallback: delete then move
                     File.Delete(path);
                     File.Move(tmpPath, path);
 #endif
@@ -285,7 +251,6 @@ public class ChunkedWorldArchive
             }
             catch (IOException)
             {
-                // final fallback: copy over and delete temp (helps if antivirus scans lock target)
                 try
                 {
                     File.Copy(tmpPath, path, true);
@@ -308,13 +273,12 @@ public class ChunkedWorldArchive
         string path = ChunkPath(x, z);
         lock (FileIoLock)
         {
-            // Allow others to read while we read; our global lock prevents our own overlapping writes
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var sr = new StreamReader(fs))
             {
                 var json = sr.ReadToEnd();
                 var chunk = JsonUtility.FromJson<Chunk>(json);
-                if (chunk == null) chunk = new Chunk(x, z); // guard corrupted/empty file
+                if (chunk == null) chunk = new Chunk(x, z);
                 return chunk;
             }
         }
@@ -322,7 +286,6 @@ public class ChunkedWorldArchive
 
     private void OnAppQuit()
     {
-        // Never delete the world folder on quit; just save pending data.
         SaveAll();
     }
 }
@@ -332,11 +295,9 @@ public class Chunk : ISerializationCallbackReceiver
 {
     public int chunkX, chunkZ;
 
-    // Unity's JsonUtility can't serialize Dictionary directly.
-    // We'll store parallel lists for serialization and rebuild the dictionary at runtime.
-    [NonSerialized] private Dictionary<string, TileData> tiles = new Dictionary<string, TileData>();
-    public List<string> keys = new List<string>();
-    public List<TileData> values = new List<TileData>();
+    [NonSerialized] private Dictionary<string, TileData> tiles = new();
+    public List<string> keys = new();
+    public List<TileData> values = new();
 
     public bool IsEmpty => tiles == null || tiles.Count == 0;
 
@@ -362,9 +323,6 @@ public class Chunk : ISerializationCallbackReceiver
         return tiles.Remove(GetKey(pos));
     }
 
-    /// <summary>
-    /// Returns all (world position, tileData) pairs for this chunk.
-    /// </summary>
     public Dictionary<Vector3Int, TileData> GetAllTiles()
     {
         var dict = new Dictionary<Vector3Int, TileData>();
@@ -394,7 +352,6 @@ public class Chunk : ISerializationCallbackReceiver
         return false;
     }
 
-    // --- Serialization glue ---
     public void OnBeforeSerialize()
     {
         keys.Clear();
@@ -412,7 +369,6 @@ public class Chunk : ISerializationCallbackReceiver
         tiles = new Dictionary<string, TileData>(keys.Count);
         for (int i = 0; i < keys.Count; i++)
         {
-            // values[i] can be null if file was corrupted; guard
             if (!tiles.ContainsKey(keys[i]) && values[i] != null)
                 tiles.Add(keys[i], values[i]);
         }

@@ -13,11 +13,10 @@ GameObject:
   - component: {fileID: -138136496622470879}
   - component: {fileID: 1767582766901638203}
   - component: {fileID: 5109481999809033662}
-  - component: {fileID: 7411860920594362988}
-  - component: {fileID: 8477373035714141460}
   - component: {fileID: 1455593018052711214}
   - component: {fileID: 1429000231133602762}
-  - component: {fileID: 5006949815393879957}
+  - component: {fileID: 4273449868731246602}
+  - component: {fileID: 6553408638953207832}
   m_Layer: 0
   m_Name: zombie
   m_TagString: Untagged
@@ -131,7 +130,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8e10c165982743458c650ed7303ec58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialShotVelocity: {x: 5, y: 0}
+  initialShotVelocity: {x: 20, y: 0}
   bullet: {fileID: 3560360957326050748, guid: d6d80ee014b0f974795a6489d1f278ac, type: 3}
   firePoint: {fileID: 4361326432860015211}
 --- !u!114 &5109481999809033662
@@ -148,36 +147,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   viewDistance: 10
   target: {fileID: 0}
-  enemyAnimatorController: {fileID: 0}
+  enemyAnimatorController: {fileID: 6553408638953207832}
   isAttacking: 0
---- !u!114 &7411860920594362988
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3685190898768921614}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e6fb8d9427ef30b42abd21bfcd206559, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  anim: {fileID: 0}
-  spriteRenderer: {fileID: 0}
---- !u!114 &8477373035714141460
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3685190898768921614}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e6fb8d9427ef30b42abd21bfcd206559, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  anim: {fileID: -138136496622470879}
-  spriteRenderer: {fileID: 0}
 --- !u!50 &1455593018052711214
 Rigidbody2D:
   serializedVersion: 5
@@ -220,8 +191,8 @@ MonoBehaviour:
   player: {fileID: 0}
   speedX: 0.2
   speedY: 0.5
---- !u!58 &5006949815393879957
-CircleCollider2D:
+--- !u!70 &4273449868731246602
+CapsuleCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -255,7 +226,22 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 3.6999998}
-  m_Radius: 3.6999998
+  m_Size: {x: 2.75, y: 7.3999996}
+  m_Direction: 0
+--- !u!114 &6553408638953207832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3685190898768921614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6fb8d9427ef30b42abd21bfcd206559, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  anim: {fileID: -138136496622470879}
+  spriteRenderer: {fileID: 8778009554003871150}
 --- !u!1 &3824302165775422482
 GameObject:
   m_ObjectHideFlags: 0
