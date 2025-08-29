@@ -34,7 +34,8 @@ public class PlayerAnimatorController : MonoBehaviour
 
     public void SetAttacking(bool isAttacking)
     {
-        anim.SetBool("isattacking", isAttacking);
+        Debug.Log("SetAttacking called: " + isAttacking);
+        anim.SetBool("isAttacking", isAttacking); // Ensure the parameter name matches your Animator (case-sensitive)
     }
 
     /// <summary>

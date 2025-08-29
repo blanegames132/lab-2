@@ -4,9 +4,10 @@ using UnityEngine;
 public class Projectile : MonoBehaviour
 {
     [SerializeField, Range(1f, 10f)] private float lifetime = 5f;
+    [SerializeField] private int damageAmount = 3;
 
     private Rigidbody2D rb;
-    private Transform firePointParent; // This is what gets set
+    private Transform firePointParent;
 
     private void Awake()
     {
@@ -17,7 +18,6 @@ public class Projectile : MonoBehaviour
     {
         Destroy(gameObject, lifetime);
 
-        // Example: Flip direction to match parent
         if (firePointParent != null)
         {
             float parentFacing = Mathf.Sign(firePointParent.localScale.x);
@@ -32,7 +32,6 @@ public class Projectile : MonoBehaviour
         }
     }
 
-    // <-- THIS IS THE METHOD YOU NEED!
     public void SetFirePointParent(Transform parent)
     {
         firePointParent = parent;
@@ -43,6 +42,30 @@ public class Projectile : MonoBehaviour
         if (rb != null)
         {
             rb.linearVelocity = velocity;
+        }
+    }
+
+    // Damage enemy and always destroy on collision (for non-trigger colliders)
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        TryDealDamage(collision.gameObject);
+        Destroy(gameObject);
+    }
+
+    // Damage enemy and always destroy on trigger (for trigger colliders)
+    private void OnTriggerEnter2D(Collider2D collider)
+    {
+        TryDealDamage(collider.gameObject);
+        Destroy(gameObject);
+    }
+
+    private void TryDealDamage(GameObject other)
+    {
+        EnemyHealth enemyHealth = other.GetComponent<EnemyHealth>();
+        if (enemyHealth != null)
+        {
+            enemyHealth.TakeDamage(damageAmount);
+            Debug.Log($"{gameObject.name} dealt {damageAmount} damage to {other.name}");
         }
     }
 }

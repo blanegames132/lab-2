@@ -1,74 +1,69 @@
 using UnityEngine;
 
 /// <summary>
-/// Enemy stays in place, flips left/right at intervals, sets isAttacking true
-/// only when player is in front (2.5D: X/Z axes, ignores Y).
-/// Stops flipping and sets animator isAttacking true when attacking.
+/// Idle turret: flips at random intervals, "sees" player with a view cone,
+/// sets isAttacking (and Animator "isAttacking" bool) when player is in cone,
+/// stops flipping while attacking, supports separate attack range.
 /// </summary>
-public class EnemyIdleLookAndAttack : MonoBehaviour
+public class EnemyIdleTurret : MonoBehaviour
 {
-    [Header("Look Timing")]
+    public Transform player; // Assign manually or auto-find by tag
+    public float speedX = 0.2f; // Unused, for compatibility
+    public float speedY = 0.5f; // Unused, for compatibility
+
+    [HideInInspector] public bool canFollow = false; // Unused, for compatibility
+
+    [Header("Idle Turret Look Settings")]
     public float minLookInterval = 1.5f;
     public float maxLookInterval = 3.5f;
 
-    [Header("Optional: assign the visual child to flip (if mesh/sprite is not on root)")]
-    public Transform visualChild;
+    [Header("Visuals")]
+    public SpriteRenderer spriteRenderer; // Assign manually or auto-find
 
-    [Header("Detection")]
-    public float detectionRange = 4f;
-    public float fieldOfView = 90f; // in degrees, for detection cone
-    public LayerMask playerLayer;
+    [Header("View Cone Settings")]
+    public float viewConeLength = 5f;
+    public float viewConeAngle = 45f; // Half angle (total cone = 90deg)
+
+    [Header("Attack Range Settings")]
+    public float attackRange = 3f; // Separate range check for attack logic
 
     [Header("Animator")]
-    public Animator animator; // Assign in Inspector or auto-find
+    public Animator animator; // Assign or auto-find
 
-    [Header("Player Reference")]
-    public Transform player; // Show in Inspector
-
-    [Header("Debug")]
-    public bool isFlipped = false;    // True if facing left, false if facing right
-    public bool isAttacking = false;  // True if player in detection area
+    [Header("Attack State (Read Only)")]
+    public bool isAttacking = false;
+    public bool inAttackRange = false;
 
     private float lookTimer = 0f;
     private float nextLookTime = 0f;
-    private bool hasDetectedPlayer = false; // To limit Debug.Log to once per detection
+    private bool isFlipped = false;
 
     private void Awake()
     {
-        // Auto-find player if not assigned
         if (player == null)
         {
             GameObject p = GameObject.FindGameObjectWithTag("Player");
             if (p != null) player = p.transform;
         }
-
-        // Auto-find Animator if not assigned
-        if (animator == null) animator = GetComponent<Animator>();
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        if (animator == null)
+            animator = GetComponent<Animator>();
 
         SetNextLookTime();
     }
 
     void Update()
     {
-        // Detect player in front (updates isAttacking)
-        DetectPlayer();
+        // Check attack and view cone states
+        isAttacking = PlayerInViewCone();
+        inAttackRange = PlayerInAttackRange();
 
-        // Set animator parameter for transitions
+        // Set animator parameter
         if (animator != null)
-            animator.SetBool("isAttacking", isAttacking); // lowercase "i" to match your Animator
+            animator.SetBool("isAttacking", isAttacking);
 
-        // Debug log if detected player (only log once per detection cycle)
-        if (isAttacking && !hasDetectedPlayer)
-        {
-            Debug.Log($"{gameObject.name} (Zombie) detected player!");
-            hasDetectedPlayer = true;
-        }
-        if (!isAttacking)
-        {
-            hasDetectedPlayer = false;
-        }
-
-        // Only flip when NOT attacking
+        // Only flip if NOT attacking (player is not in view cone)
         if (!isAttacking)
         {
             lookTimer += Time.deltaTime;
@@ -78,6 +73,7 @@ public class EnemyIdleLookAndAttack : MonoBehaviour
                 SetNextLookTime();
             }
         }
+        // else: do not flip, stay facing current direction
     }
 
     void SetNextLookTime()
@@ -89,68 +85,68 @@ public class EnemyIdleLookAndAttack : MonoBehaviour
     void FlipLookDirection()
     {
         isFlipped = !isFlipped;
-        if (visualChild)
-        {
-            Vector3 scale = visualChild.localScale;
-            scale.x = Mathf.Abs(scale.x) * (isFlipped ? -1f : 1f);
-            visualChild.localScale = scale;
-        }
-        else
-        {
-            Vector3 scale = transform.localScale;
-            scale.x = Mathf.Abs(scale.x) * (isFlipped ? -1f : 1f);
-            transform.localScale = scale;
-        }
+        if (spriteRenderer != null)
+            spriteRenderer.flipX = isFlipped;
     }
 
-    void DetectPlayer()
+    // Returns true if player is in the current view cone
+    bool PlayerInViewCone()
     {
-        if (player == null)
-        {
-            isAttacking = false;
-            return;
-        }
+        if (player == null) return false;
 
-        // 2.5D: Ignore Y axis for detection
-        Vector3 dirToPlayer = player.position - transform.position;
-        dirToPlayer.y = 0f; // Only X and Z are considered
+        Vector3 facing = (spriteRenderer != null && spriteRenderer.flipX) ? Vector3.left : Vector3.right;
+        Vector3 toPlayer = player.position - transform.position;
+        toPlayer.z = 0f; // 2D: use XY; change to y=0 if game is XZ
 
-        float distance = dirToPlayer.magnitude;
-        if (distance > detectionRange)
-        {
-            isAttacking = false;
-            return;
-        }
+        if (toPlayer.magnitude > viewConeLength)
+            return false;
 
-        Vector3 facingDir = isFlipped ? Vector3.left : Vector3.right;
-
-        // Field of view angle check (in X/Z plane)
-        float dot = Vector3.Dot(dirToPlayer.normalized, facingDir);
-        float angleToPlayer = Mathf.Acos(dot) * Mathf.Rad2Deg;
-
-        isAttacking = angleToPlayer <= (fieldOfView * 0.5f);
+        float angle = Vector3.Angle(facing, toPlayer);
+        return angle <= viewConeAngle;
     }
 
-    void OnDrawGizmos()
+    // Returns true if player is within attack range (separate from view cone)
+    bool PlayerInAttackRange()
     {
-        // Draw look direction
-        Gizmos.color = isAttacking ? Color.yellow : Color.red;
-        Vector3 start = visualChild ? visualChild.position : transform.position;
-        Vector3 facingDir = isFlipped ? Vector3.left : Vector3.right;
-        Gizmos.DrawLine(start, start + facingDir * 2f);
+        if (player == null) return false;
+        Vector3 toPlayer = player.position - transform.position;
+        toPlayer.z = 0f;
+        return toPlayer.magnitude <= attackRange;
+    }
 
-        // Draw detection range
-        Gizmos.color = new Color(1f, 1f, 0.5f, 0.3f);
-        Gizmos.DrawWireSphere(start, detectionRange);
+    // Draw view cone and attack range in Scene View
+    void OnDrawGizmosSelected()
+    {
+        if (spriteRenderer == null && Application.isPlaying == false)
+            spriteRenderer = GetComponent<SpriteRenderer>();
 
-        // Draw detection cone (X/Z plane)
-        Gizmos.color = new Color(1f, 1f, 0.1f, 0.13f);
-        float halfAngle = fieldOfView * 0.5f;
-        Quaternion leftRot = Quaternion.AngleAxis(-halfAngle, Vector3.up);
-        Quaternion rightRot = Quaternion.AngleAxis(halfAngle, Vector3.up);
-        Vector3 leftDir = leftRot * facingDir;
-        Vector3 rightDir = rightRot * facingDir;
-        Gizmos.DrawLine(start, start + leftDir * detectionRange);
-        Gizmos.DrawLine(start, start + rightDir * detectionRange);
+        Vector3 facing = (spriteRenderer != null && spriteRenderer.flipX) ? Vector3.left : Vector3.right;
+        Vector3 origin = transform.position;
+        float halfAngle = viewConeAngle;
+
+        // Cone boundaries
+        Quaternion leftRot = Quaternion.AngleAxis(-halfAngle, Vector3.forward);
+        Quaternion rightRot = Quaternion.AngleAxis(halfAngle, Vector3.forward);
+        Vector3 leftDir = leftRot * facing;
+        Vector3 rightDir = rightRot * facing;
+
+        Gizmos.color = new Color(1f, 1f, 0.3f, 0.3f);
+        Gizmos.DrawLine(origin, origin + leftDir * viewConeLength);
+        Gizmos.DrawLine(origin, origin + rightDir * viewConeLength);
+
+        // Fill cone (optional)
+        int segments = 16;
+        for (int i = 0; i <= segments; i++)
+        {
+            float t = i / (float)segments;
+            float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
+            Quaternion rot = Quaternion.AngleAxis(angle, Vector3.forward);
+            Vector3 dir = rot * facing;
+            Gizmos.DrawLine(origin, origin + dir * viewConeLength);
+        }
+
+        // Draw attack range circle
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(origin, attackRange);
     }
 }
