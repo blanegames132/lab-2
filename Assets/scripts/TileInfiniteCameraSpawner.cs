@@ -217,6 +217,14 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             }
         }
     }
+    private void ClearAllTilemapsAtPosition(Vector3Int pos)
+    {
+        foreach (var spacing in tilemapZSpacings)
+        {
+            if (spacing.tilemap != null)
+                spacing.tilemap.SetTile(pos, null);
+        }
+    }
     private void Update()
     {
         ProcessDeleteQueueTilemaps(100);
@@ -590,6 +598,9 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
         if (tileData == null) return;
         TileBase resolvedTile = ResolveTileFromTag(pos, biomeIndex, tileData.blockTagOrName);
 
+        // Defensive: clear the tile from ALL tilemaps at this position first
+        ClearAllTilemapsAtPosition(pos);
+
         // Place into the correct z-spaced tilemap, using SetTileDefensively
         for (int i = 0; i < tilemapZSpacings.Count; i++)
         {
@@ -601,6 +612,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
             }
         }
     }
+
 
     public void RemoveChunk(int chunkX, int z)
     {
@@ -623,21 +635,25 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
     public void UpdateWorldIfNeeded(Vector3Int playerPos)
     {
-        int playerZ = playerPos.z;
-        int playerY = playerPos.y;
+        // --- USE TILEMAP CELL SPACE FOR ALL CHUNK MATH ---
+        Vector3 playerWorldPos = playerTransform.position;
+        Vector3Int playerCell = groundTilemap.WorldToCell(playerWorldPos);
+        int playerZ = playerCell.z;
+        int playerY = playerCell.y;
 
-        lastPlayerPosForQuit = playerPos;
+        lastPlayerPosForQuit = playerCell;
 
         float halfWidth = 10f;
-        int minX = playerPos.x - (int)halfWidth - buffer;
-        int maxX = playerPos.x + (int)halfWidth + buffer;
+        int minX = playerCell.x - (int)halfWidth - buffer;
+        int maxX = playerCell.x + (int)halfWidth + buffer;
 
         float halfCamHeight = 7f;
         int minY = playerY - (int)halfCamHeight - buffer;
         int maxY = playerY + (int)halfCamHeight + buffer;
         int buildBottom = Mathf.Min(minY, playerY);
 
-        int playerChunk = Mathf.FloorToInt((float)playerPos.x / ChunkSize);
+        // --- KEY: use playerCell.x for chunk math ---
+        int playerChunk = Mathf.FloorToInt((float)playerCell.x / ChunkSize);
         int chunkGenLeft = playerChunk - ChunksGenerated;
         int chunkGenRight = playerChunk + ChunksGenerated;
         int chunkRenderLeft = playerChunk - (ChunksVisible / 2);
@@ -826,7 +842,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
     }
 
 
-public void SaveGame()
+    public void SaveGame()
     {
         if (enableWorldArchive && worldArchive != null)
             worldArchive.SaveAll();

@@ -199,15 +199,27 @@ public class ChunkUpdateManager : MonoBehaviour
     /// </summary>
     private void QueueAllTilesForDeletionOnZMove()
     {
-        if (spawner == null || spawner.tilemapZSpacings == null) return;
+        if (spawner == null || spawner.tilemapZSpacings == null || spawner.playerTransform == null)
+            return;
+
+        int playerZ = Mathf.RoundToInt(spawner.playerTransform.position.z);
+        int minZ = playerZ - 2;
+        int maxZ = playerZ + 2;
+
         foreach (var tmSpacing in spawner.tilemapZSpacings)
         {
             Tilemap tilemap = tmSpacing.tilemap;
             if (tilemap == null) continue;
+
             foreach (var pos in tilemap.cellBounds.allPositionsWithin)
             {
-                if (tilemap.HasTile(pos) && !spawner.IsInPlayerZSafeRange(pos))
+                // Only queue for deletion if NOT in visible Z range and not in player Z-safe range
+                if (tilemap.HasTile(pos) &&
+                    (pos.z < minZ || pos.z > maxZ) &&
+                    !spawner.IsInPlayerZSafeRange(pos))
+                {
                     tilesToDelete.Enqueue((tilemap, pos));
+                }
             }
         }
     }

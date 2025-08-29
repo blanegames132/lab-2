@@ -12,11 +12,9 @@ GameObject:
   - component: {fileID: 8778009554003871150}
   - component: {fileID: -138136496622470879}
   - component: {fileID: 1767582766901638203}
-  - component: {fileID: 5109481999809033662}
   - component: {fileID: 1455593018052711214}
-  - component: {fileID: 1429000231133602762}
   - component: {fileID: 4273449868731246602}
-  - component: {fileID: 6553408638953207832}
+  - component: {fileID: 7300727521991096616}
   m_Layer: 0
   m_Name: zombie
   m_TagString: Untagged
@@ -133,22 +131,6 @@ MonoBehaviour:
   initialShotVelocity: {x: 20, y: 0}
   bullet: {fileID: 3560360957326050748, guid: d6d80ee014b0f974795a6489d1f278ac, type: 3}
   firePoint: {fileID: 4361326432860015211}
---- !u!114 &5109481999809033662
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3685190898768921614}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 82b7ff74ac83aba4eb3488edc2b2db26, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  viewDistance: 10
-  target: {fileID: 0}
-  enemyAnimatorController: {fileID: 6553408638953207832}
-  isAttacking: 0
 --- !u!50 &1455593018052711214
 Rigidbody2D:
   serializedVersion: 5
@@ -176,21 +158,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
---- !u!114 &1429000231133602762
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3685190898768921614}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cd395808de5fe4649a4ebbf785ef3333, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 0}
-  speedX: 0.2
-  speedY: 0.5
 --- !u!70 &4273449868731246602
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -228,7 +195,7 @@ CapsuleCollider2D:
   m_Offset: {x: 0, y: 3.6999998}
   m_Size: {x: 2.75, y: 7.3999996}
   m_Direction: 0
---- !u!114 &6553408638953207832
+--- !u!114 &7300727521991096616
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -237,11 +204,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 3685190898768921614}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e6fb8d9427ef30b42abd21bfcd206559, type: 3}
+  m_Script: {fileID: 11500000, guid: 58c461da8730ccf44b9e3ddf252c21ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  anim: {fileID: -138136496622470879}
-  spriteRenderer: {fileID: 8778009554003871150}
+  minLookInterval: 1.5
+  maxLookInterval: 3.5
+  visualChild: {fileID: 0}
+  detectionRange: 4
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  animator: {fileID: -138136496622470879}
+  player: {fileID: 0}
+  isFlipped: 0
+  isAttacking: 0
 --- !u!1 &3824302165775422482
 GameObject:
   m_ObjectHideFlags: 0
