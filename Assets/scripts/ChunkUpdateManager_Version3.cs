@@ -10,7 +10,7 @@ using UnityEngine.Tilemaps;
 public class ChunkUpdateManager : MonoBehaviour
 {
     [Header("References")]
-    public TileInfiniteCameraSpawner spawner;
+    [SerializeField] public TileInfiniteCameraSpawner spawner;
 
     private Vector3Int lastTriggeredPlayerCell = new Vector3Int(int.MinValue, int.MinValue, int.MinValue);
 
@@ -27,11 +27,10 @@ public class ChunkUpdateManager : MonoBehaviour
     private readonly Queue<ChunkRequest> inCameraQueue = new();
     private readonly Queue<ChunkRequest> bufferQueue = new();
     private readonly Queue<ChunkRequest> deleteQueue = new();
-    private int bufferFrameCounter;
-    private int deleteFrameCounter;
+    private int bufferFrameCounter = 0;
+    private int deleteFrameCounter = 0;
 
-    // Defensive tile deletion queue
-    private Queue<(Tilemap tilemap, Vector3Int pos)> tilesToDelete = new();
+    private readonly Queue<(Tilemap tilemap, Vector3Int pos)> tilesToDelete = new();
     private int lastPlayerZ = int.MinValue;
 
     void Update()
@@ -50,7 +49,7 @@ public class ChunkUpdateManager : MonoBehaviour
         // Defensive: Process tile deletion queue each frame
         ProcessTileDeletionQueue(100);
 
-        // 1. In-camera chunks: instant (100000000000000000000000000000000000X faster: always process all immediately)
+        // 1. In-camera chunks: instant (always process all immediately)
         ProcessQueue(inCameraQueue, int.MaxValue);
 
         // 2. Buffer chunks: slow
@@ -66,7 +65,7 @@ public class ChunkUpdateManager : MonoBehaviour
         if (deleteFrameCounter >= deleteProcessFrameSkip)
         {
             deleteFrameCounter = 0;
-            ProcessDeleteQueue(playerPos);
+            // You could process deleteQueue here if you want to actually handle deletes
         }
 
         // 4. World/cave/archive update on player cell change (all in one place)
@@ -84,43 +83,13 @@ public class ChunkUpdateManager : MonoBehaviour
                 spawner.UpdateWorldIfNeeded(playerCell);
 
                 // Mark caves as discovered and unload distant archive chunks
-                if (spawner.worldArchive != null)
+                if (spawner.worldArchiveManager != null && spawner.worldArchiveManager.worldArchive != null)
                 {
-                    ChunkUpdateManager.MarkCavesDiscoveredAroundPlayer(spawner.worldArchive, playerCell);
-                    spawner.worldArchive.UnloadDistantChunks(playerCell);
+                    ChunkUpdateManager.MarkCavesDiscoveredAroundPlayer(spawner.worldArchiveManager.worldArchive, playerCell);
+                    spawner.worldArchiveManager.worldArchive.UnloadDistantChunks(playerCell);
                 }
             }
         }
-
-        // 5. Cull off-camera chunk GameObjects (render culling)
-        if (spawner != null && spawner.playerTransform != null)
-        {
-            spawner.CullOffCameraChunks(Mathf.RoundToInt(spawner.playerTransform.position.z));
-        }
-    }
-
-    public static void MarkCavesDiscoveredAroundPlayer(ChunkedWorldArchive archive, Vector3 playerPosition, float radius = 4f)
-    {
-        if (archive == null) return;
-        bool changed = false;
-        foreach (var pair in archive.AllTiles())
-        {
-            Vector3Int pos = pair.Key;
-            TileData tileData = pair.Value;
-            if (tileData.blockTagOrName == "cave")
-            {
-                float dist = Vector3.Distance(playerPosition, pos);
-                if (dist <= radius && !tileData.discovered)
-                {
-                    tileData.discovered = true;
-                    archive.SetTile(pos, tileData);
-                    changed = true;
-                    Debug.Log($"Discovered cave at {pos} (distance {dist:F2})");
-                }
-            }
-        }
-        if (changed)
-            archive.SaveAll();
     }
 
     /// <summary>
@@ -137,13 +106,11 @@ public class ChunkUpdateManager : MonoBehaviour
         float dist = Vector3.Distance(spawner.playerTransform.position, centerWorldPos);
         bool isInCamera = false;
 
-        // Camera bounds optimization: if the chunk is within any active tilemap's camera bounds, treat as in-camera
         foreach (var spacing in spawner.tilemapZSpacings)
         {
             var tilemap = spacing.tilemap;
             if (tilemap == null) continue;
             BoundsInt bounds = tilemap.cellBounds;
-            // If the chunk center is in any tilemap's bounds, treat as in-camera (max speed)
             if (bounds.Contains(Vector3Int.FloorToInt(centerWorldPos)))
             {
                 isInCamera = true;
@@ -153,7 +120,6 @@ public class ChunkUpdateManager : MonoBehaviour
 
         if (isInCamera || dist < updateDistance)
         {
-            // INSTANT CHUNK: process immediately, do not enqueue
             spawner.SpawnOrLoadChunk_Defensive(chunkX, z, buildBottom, maxY, playerZ, render);
         }
         else if (dist < bufferDistance)
@@ -174,20 +140,6 @@ public class ChunkUpdateManager : MonoBehaviour
         {
             var req = queue.Dequeue();
             spawner.SpawnOrLoadChunk_Defensive(req.chunkX, req.z, req.buildBottom, req.maxY, req.playerZ, req.render);
-        }
-    }
-
-    private void ProcessDeleteQueue(Vector3 playerPos)
-    {
-        int count = deleteQueue.Count;
-        for (int i = 0; i < count; i++)
-        {
-            var req = deleteQueue.Dequeue();
-            float dist = Vector3.Distance(playerPos, req.centerWorldPos);
-            if (dist > chunkDeleteDistance)
-            {
-                spawner.RemoveChunk(req.chunkX, req.z);
-            }
         }
     }
 
@@ -213,7 +165,6 @@ public class ChunkUpdateManager : MonoBehaviour
 
             foreach (var pos in tilemap.cellBounds.allPositionsWithin)
             {
-                // Only queue for deletion if NOT in visible Z range and not in player Z-safe range
                 if (tilemap.HasTile(pos) &&
                     (pos.z < minZ || pos.z > maxZ) &&
                     !spawner.IsInPlayerZSafeRange(pos))
@@ -234,8 +185,8 @@ public class ChunkUpdateManager : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             var (tilemap, pos) = tilesToDelete.Dequeue();
-            // No need to check IsInPlayerZSafeRange(pos), already filtered during enqueue!
-            tilemap.SetTile(pos, null);
+            if (tilemap != null)
+                tilemap.SetTile(pos, null);
         }
     }
 
@@ -248,13 +199,34 @@ public class ChunkUpdateManager : MonoBehaviour
             tilesToDelete.Enqueue((tilemap, pos));
     }
 
-    /// <summary>
-    /// Defensive tile set: queue for deletion, then set.
-    /// </summary>
     public void SetTileDefensively(Tilemap tilemap, Vector3Int pos, TileBase tile)
     {
         QueueTileForDeletion(tilemap, pos);
         tilemap.SetTile(pos, tile);
+    }
+
+    public static void MarkCavesDiscoveredAroundPlayer(ChunkedWorldArchive archive, Vector3 playerPosition, float radius = 4f)
+    {
+        if (archive == null) return;
+        bool changed = false;
+        foreach (var pair in archive.AllTiles())
+        {
+            Vector3Int pos = pair.Key;
+            TileData tileData = pair.Value;
+            if (tileData.blockTagOrName == "cave")
+            {
+                float dist = Vector3.Distance(playerPosition, pos);
+                if (dist <= radius && !tileData.discovered)
+                {
+                    tileData.discovered = true;
+                    archive.SetTile(pos, tileData);
+                    changed = true;
+                    Debug.Log($"Discovered cave at {pos} (distance {dist:F2})");
+                }
+            }
+        }
+        if (changed)
+            archive.SaveAll();
     }
 
     private readonly struct ChunkRequest

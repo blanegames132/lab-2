@@ -1,61 +1,60 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+/// <summary>
+/// Absolutely hides (or deletes) all tiles in the specified area every frame, even if no hide asset is specified.
+/// Hides (or deletes) ALL tiles in the radius at every Z in the tilemap bounds, not just the player's Z.
+/// Logs a debug message if there is no tile to hide.
+/// When outside the radius, no replacement or restore is attempted.
+/// </summary>
+[ExecuteAlways]
+[DisallowMultipleComponent]
 public class TileHideSetManager : MonoBehaviour
 {
-    [Header("Tile Hide Sets")]
-    public TileHiddenSet frontTileHiddenSet;
-    public MidFrontTileHiddenSet midFrontTileHiddenSet;
-
     [Header("Player Reference")]
     public Transform playerTransform;
 
-    [Header("Tilemaps for Front Check")]
-    public Tilemap frontTilemap;
-    public Tilemap middlefrontTilemap;
-
-    private int frontInspectorRadius;
-    private int midFrontInspectorRadius;
-
-    void Start()
-    {
-        if (frontTileHiddenSet != null)
-            frontInspectorRadius = frontTileHiddenSet.bubbleHideRadius;
-        if (midFrontTileHiddenSet != null)
-            midFrontInspectorRadius = midFrontTileHiddenSet.bubbleHideRadius;
-    }
+    [Header("Tilemap Hide Configs")]
+    public List<TilemapHideConfig> hideConfigs = new List<TilemapHideConfig>();
 
     void Update()
     {
         if (playerTransform == null)
             return;
 
-        // Use frontTilemap for cell conversion if available, else fallback
-        Vector3Int playerCell = frontTilemap != null
-            ? frontTilemap.WorldToCell(playerTransform.position)
-            : (middlefrontTilemap != null
-                ? middlefrontTilemap.WorldToCell(playerTransform.position)
-                : Vector3Int.FloorToInt(playerTransform.position));
-
-        Vector3Int frontCell = new Vector3Int(playerCell.x, playerCell.y, playerCell.z + 1);
-
-        bool tileInFrontFront = (frontTilemap != null && frontTilemap.GetTile(frontCell) != null);
-        bool tileInFrontMiddleFront = (middlefrontTilemap != null && middlefrontTilemap.GetTile(frontCell) != null);
-
-        // If EITHER tilemap has a tile in front, use inspector defaults; else set both to 0
-        if (tileInFrontFront || tileInFrontMiddleFront)
+        foreach (var config in hideConfigs)
         {
-            if (frontTileHiddenSet != null)
-                frontTileHiddenSet.bubbleHideRadius = frontInspectorRadius;
-            if (midFrontTileHiddenSet != null)
-                midFrontTileHiddenSet.bubbleHideRadius = midFrontInspectorRadius;
-        }
-        else
-        {
-            if (frontTileHiddenSet != null)
-                frontTileHiddenSet.bubbleHideRadius = 0;
-            if (midFrontTileHiddenSet != null)
-                midFrontTileHiddenSet.bubbleHideRadius = 0;
+            if (config == null || config.tilemap == null)
+                continue;
+
+            Vector3Int centerCell = config.tilemap.WorldToCell(playerTransform.position);
+            int radius = config.bubbleHideRadius;
+            BoundsInt bounds = config.tilemap.cellBounds;
+
+            // Iterate through all Zs in the tilemap's bounds!
+            for (int dx = -radius; dx <= radius; dx++)
+                for (int dy = -radius; dy <= radius; dy++)
+                {
+                    if (dx * dx + dy * dy > radius * radius) continue;
+                    int x = centerCell.x + dx;
+                    int y = centerCell.y + dy;
+
+                    for (int z = bounds.zMin; z < bounds.zMax; z++)
+                    {
+                        Vector3Int cell = new Vector3Int(x, y, z);
+                        TileBase currentTile = config.tilemap.GetTile(cell);
+                        if (currentTile != null)
+                        {
+                            // Overwrite: if hideTileAsset is set, use it; otherwise set null
+                            config.tilemap.SetTile(cell, config.hideTileAsset ?? null);
+                        }
+                        else
+                        {
+                            Debug.Log($"[TileHideSetManager] Cannot hide cell {cell} in tilemap {config.tilemap.name}: no tile present to hide or delete.");
+                        }
+                    }
+                }
         }
     }
 }

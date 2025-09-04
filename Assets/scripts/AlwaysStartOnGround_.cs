@@ -43,24 +43,27 @@ public class AlwaysStartOnGround : MonoBehaviour
         Debug.Log($"Player clamped to ground at {pos}");
     }
 
-    // --- Add this method ---
+    // --- Fixed: Use worldArchiveManager.worldArchive ---
     void ResetAllCavesToUndiscovered()
     {
-        if (spawner != null && spawner.enableWorldArchive && spawner.worldArchive != null)
+        if (spawner != null && spawner.enableWorldArchive
+            && spawner.worldArchiveManager != null
+            && spawner.worldArchiveManager.worldArchive != null)
         {
+            var archive = spawner.worldArchiveManager.worldArchive;
             bool changed = false;
-            foreach (var pair in spawner.worldArchive.AllTiles())
+            foreach (var pair in archive.AllTiles())
             {
                 TileData tileData = pair.Value;
                 if (tileData != null && tileData.blockTagOrName == "cave" && tileData.discovered)
                 {
                     tileData.discovered = false;
-                    spawner.worldArchive.SetTile(pair.Key, tileData);
+                    archive.SetTile(pair.Key, tileData);
                     changed = true;
                 }
             }
             if (changed)
-                spawner.worldArchive.SaveAll();
+                archive.SaveAll();
         }
     }
 }

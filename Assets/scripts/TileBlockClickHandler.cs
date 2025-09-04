@@ -12,7 +12,7 @@ public class TileBlockClickHandler : MonoBehaviour
     public float radius = 3f; // Radius around player in which blocks can be clicked/removed
 
     [Header("Reference to your TileInfiniteCameraSpawner")]
-    public TileInfiniteCameraSpawner cameraSpawner;
+    public TileInfiniteCameraSpawner spawner;
 
     void Update()
     {
@@ -39,21 +39,24 @@ public class TileBlockClickHandler : MonoBehaviour
             {
                 if (groundTilemap.HasTile(clickedCell))
                 {
-                    if (cameraSpawner == null)
+                    if (spawner == null)
                     {
-                        Debug.LogWarning("cameraSpawner is not set on TileBlockClickHandler!");
+                        Debug.LogWarning("spawner is not set on TileBlockClickHandler!");
                         return;
                     }
 
-                    // Check if clicked tile is bedrock
-                    int biomeIndex = cameraSpawner.GetChunkBiome(clickedCell.x / cameraSpawner.ChunkSize, clickedCell.z);
-                    string tag = cameraSpawner.enableWorldArchive
-                        ? cameraSpawner.GetTileTagForFog(clickedCell, null, biomeIndex)
-                        : null;
+                    // Get biome index for the chunk
+                    int biomeIndex = spawner.GetChunkBiome(clickedCell.x / spawner.ChunkSize, clickedCell.z);
+
+                    // Get the tile tag if available from archive
+                    string tag = null;
+                    var tileData = spawner.worldArchiveManager.TryGetTile(clickedCell);
+                    if (tileData != null)
+                        tag = tileData.blockTagOrName;
 
                     if (tag == null || !tag.StartsWith("bedrock", System.StringComparison.OrdinalIgnoreCase))
                     {
-                        cameraSpawner.DeleteTile(clickedCell);
+                        spawner.worldArchiveManager.DeleteTile(clickedCell, groundTilemap, TileInfiniteCameraSpawner.deletedTiles);
                         Debug.Log($"Deleted tile at {clickedCell} (not bedrock)");
                     }
                     else
