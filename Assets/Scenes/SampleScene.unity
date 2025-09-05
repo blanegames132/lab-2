@@ -147,6 +147,9 @@ GameObject:
   - component: {fileID: 127414206}
   - component: {fileID: 127414207}
   - component: {fileID: 127414208}
+  - component: {fileID: 127414210}
+  - component: {fileID: 127414209}
+  - component: {fileID: 127414211}
   m_Layer: 0
   m_Name: tilemanager
   m_TagString: Untagged
@@ -243,8 +246,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23258ca71cf82b746bab41e7047cf338, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetTilemap: {fileID: 1899764065}
-  bubbleHideRadius: 2
 --- !u!114 &127414192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -259,9 +260,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   seedSelector: {fileID: 127414205}
   worldSeedApplier: {fileID: 127414206}
-  worldArchiveManager: {fileID: 127414207}
-  biomeManager: {fileID: 127414208}
+  worldArchiveManager: {fileID: 0}
+  biomeManager: {fileID: 0}
   enableWorldArchive: 1
+  fallbackMono: {fileID: 127414209}
   hillCurve:
     serializedVersion: 2
     m_Curve:
@@ -1346,14 +1348,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6dfebdb16637e24f946354cd8e2ca1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fogTilemaps:
-  - {fileID: 1252015340}
-  - {fileID: 1976309881}
-  - {fileID: 1011403248}
-  player: {fileID: 892277581}
-  discoveryRadius: 4
-  zLayerRadius: 2
-  debugDiscovery: 1
 --- !u!114 &127414201
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1366,14 +1360,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e0a4efbe8949844dbff45c8f0c89cba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetTilemaps:
-  - {fileID: 1252015340}
-  - {fileID: 1976309881}
-  - {fileID: 1011403248}
-  centerTransform: {fileID: 892277581}
-  radius: 4
-  runEveryFrame: 1
-  debug: 1
 --- !u!114 &127414202
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1386,8 +1372,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3d5c2db88947d3418c4a2623653df1a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fogManager: {fileID: 127414201}
-  tileSpawner: {fileID: 127414192}
 --- !u!114 &127414203
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1494,6 +1478,71 @@ MonoBehaviour:
     subsurfaceTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
     groundTile: {fileID: 11400000, guid: e566a846a95a6274aa3495dc34075623, type: 2}
     bedrockTile: {fileID: 11400000, guid: 3f5069fe6ff5cc046819ee049347ef17, type: 2}
+--- !u!114 &127414209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c824f7b7eb9df3c4d95c13aea766d122, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  groundTilemap: {fileID: 1367466478}
+  frontTilemap: {fileID: 2050080548}
+  middleFrontTilemap: {fileID: 1899764065}
+  middleBackTilemap: {fileID: 854121014}
+  backTilemap: {fileID: 840299867}
+  defaultSurfaceTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+  defaultSubsurfaceTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  defaultGroundTile: {fileID: 11400000, guid: a621ef32daeab7040bd5ffe8291402a3, type: 2}
+  defaultBedrockTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  playerTransform: {fileID: 892277581}
+  biomeManagerFallback: {fileID: 127414210}
+  selectedBiomeName: 
+  selectedBiomeIndex: 0
+  visualAreaSize: 30
+  tilesBelow: 50
+  hillHeight: 8
+  seedScale: 0.03
+  hillNoiseScale: 0.07
+  cliffSharpness: 2
+  hillVerticalShift: -5
+  canyonThreshold: 0.92
+  worldArchiveMa: {fileID: 127414211}
+  archiveFlushInterval: 5
+--- !u!114 &127414210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9178b788b2a82c445918186d5534c2ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  biomes:
+  - name: 
+    surfaceTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+    subsurfaceTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+    groundTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+    bedrockTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
+--- !u!114 &127414211
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9451cf83737b8642a2a3dac2bc782ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &139177888
 GameObject:
   m_ObjectHideFlags: 0
@@ -2278,14 +2327,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2835827d3d893e4690c4c41062016a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 519420031}
-  referenceTilemap: {fileID: 0}
-  chunkSize: 16
-  bufferChunks: 2
-  chunksLeft: 2
-  chunksRight: 2
-  chunksDown: 2
-  chunksUp: 2
 --- !u!114 &519420035
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2298,10 +2339,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38d60709f29b11048b87e24a0842f398, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  <IsReady>k__BackingField: 0
-  zRange: 8
-  xRadius: 500
-  maxColumnPerFrame: 500
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -3501,9 +3538,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec508c5bcb44def4a9528bbc079ad077, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  radius: 4
-  deleteInRadius: 1
-  hasDeleted: 0
 --- !u!1 &1011403244
 GameObject:
   m_ObjectHideFlags: 0
@@ -3640,11 +3674,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41b61334934f986489b7155ce525dcfe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetTilemap: {fileID: 0}
-  centerTransform: {fileID: 892277581}
-  radius: 4
-  runEveryFrame: 0
-  debug: 0
 --- !u!1 &1064781976
 GameObject:
   m_ObjectHideFlags: 0
@@ -4127,11 +4156,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41b61334934f986489b7155ce525dcfe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetTilemap: {fileID: 0}
-  centerTransform: {fileID: 892277581}
-  radius: 4
-  runEveryFrame: 0
-  debug: 0
 --- !u!1 &1252756429
 GameObject:
   m_ObjectHideFlags: 0
@@ -4852,11 +4876,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41b61334934f986489b7155ce525dcfe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetTilemap: {fileID: 0}
-  centerTransform: {fileID: 892277581}
-  radius: 4
-  runEveryFrame: 0
-  debug: 0
 --- !u!1 &1980366261
 GameObject:
   m_ObjectHideFlags: 0

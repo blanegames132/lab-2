@@ -24,7 +24,7 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
     [Header("Seed Settings")]
     [SerializeField] public bool enableWorldArchive = true;
-
+    public InfiniteCameraSpawnerModular fallbackMono;
     [Header("Hill Shape Controls")]
     [SerializeField] private AnimationCurve hillCurve;
     [SerializeField] public float hillHeight;
@@ -389,7 +389,26 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
     public void UpdateWorldIfNeeded(Vector3Int playerPos)
     {
-        Vector3 playerWorldPos = playerTransform.position;
+        // Fallback if anything is missing
+        if (groundTilemap == null ||
+            frontTilemap == null ||
+            middleFrontTilemap == null ||
+            middleBackTilemap == null ||
+            backTilemap == null ||
+            playerTransform == null ||
+            seedSelector == null ||
+            worldSeedApplier == null ||
+            worldArchiveManager == null ||
+            biomeManager == null ||
+            chunkUpdateManager == null)
+        {
+            if (fallbackMono != null)
+                fallbackMono.UpdateWorldIfNeeded();
+            return;
+        }
+
+            // Normal logic (unchanged from your script)
+            Vector3 playerWorldPos = playerTransform.position;
         Vector3Int playerCell = groundTilemap.WorldToCell(playerWorldPos);
         int playerZ = playerCell.z;
         int playerY = playerCell.y;
@@ -464,7 +483,6 @@ public class TileInfiniteCameraSpawner : MonoBehaviour
 
         UpdateHillCurvePreview(playerZ);
     }
-
     public bool ShouldSpawnTile(Vector3Int pos, Vector3Int playerPos, int maxAbovePlayer = 100)
     {
         return pos.y <= playerPos.y + maxAbovePlayer;

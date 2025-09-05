@@ -3,15 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-//
-// ===============================
-// Chunked World Archive
-// ===============================
-// Handles saving/loading chunks to .json so tiles persist.
-//
 public class ChunkedWorldArchive
 {
-    private const int ChunkSize = 16;
+    private readonly int ChunkSize;
     private const int MaxChunksInMemory = 10;
     private const int SaveEveryNModifications = 20;
     private const int UnloadBeyondChunks = 12;
@@ -27,29 +21,26 @@ public class ChunkedWorldArchive
     private static readonly object FileIoLock = new object();
     private Dictionary<Vector2Int, int> chunkBiomes = new();
 
+    // --- NEW: Track new tiles since last archive ---
+    private int tilesSpawnedSinceLastArchive = 0;
+
     /// <summary>
-    /// Returns all world tile positions and data (from loaded/in-memory chunks only, for speed)
+    /// Default parameterless constructor for easy instancing. 
+    /// Uses "defaultSeed" and chunkSize 16.
     /// </summary>
-    public Dictionary<Vector3Int, TileData> AllTiles()
-    {
-        var allTiles = new Dictionary<Vector3Int, TileData>();
-        foreach (var chunkPair in loadedChunks)
-        {
-            foreach (var tilePair in chunkPair.Value.GetAllTiles())
-            {
-                allTiles[tilePair.Key] = tilePair.Value;
-            }
-        }
-        return allTiles;
-    }
+    public ChunkedWorldArchive() : this("defaultSeed", 16) { }
 
-    public bool HasChunk(Vector2Int key)
-    {
-        return chunkBiomes.ContainsKey(key);
-    }
+    /// <summary>
+    /// Allow usage with only a seed string, chunkSize defaults to 16.
+    /// </summary>
+    public ChunkedWorldArchive(string seed) : this(seed, 16) { }
 
-    public ChunkedWorldArchive(string seed)
+    /// <summary>
+    /// Main constructor. You MUST provide both seed and chunkSize.
+    /// </summary>
+    public ChunkedWorldArchive(string seed, int chunkSize)
     {
+        ChunkSize = chunkSize;
         string baseFolder = Path.Combine(Application.persistentDataPath, "mygame");
         string worldFolder = Path.Combine(baseFolder, "WorldSaves", seed);
         saveFolder = Path.Combine(worldFolder, "chunks");
@@ -60,20 +51,37 @@ public class ChunkedWorldArchive
         Application.quitting += OnAppQuit;
     }
 
-    // -----------------------------
-    // Tile Operations
-    // -----------------------------
     public void SetTile(Vector3Int pos, TileData data)
     {
         var chunkCoords = WorldToChunk(pos);
         var chunk = LoadOrCreateChunk(chunkCoords.x, chunkCoords.z);
+
+        // --- NEW: Count new tiles only if adding a tile where one did not exist ---
+        bool isNewTile = !chunk.HasTile(pos);
         chunk.SetTile(pos, data);
+
+        if (isNewTile)
+        {
+            tilesSpawnedSinceLastArchive++;
+        }
 
         TouchChunk(chunkCoords);
         modifiedChunks.Add(chunkCoords);
         modificationCounter++;
         EnsureChunkLimit();
         MaybeAutoSave();
+    }
+
+    // --- NEW: Method to get count of new tiles since last archive ---
+    public int GetTilesSpawnedSinceLastArchive()
+    {
+        return tilesSpawnedSinceLastArchive;
+    }
+
+    // --- NEW: Reset count (called from SaveAll, after archiving) ---
+    private void ResetTilesSpawnedSinceLastArchive()
+    {
+        tilesSpawnedSinceLastArchive = 0;
     }
 
     public TileData TryGetTile(Vector3Int pos)
@@ -96,6 +104,43 @@ public class ChunkedWorldArchive
         return null;
     }
 
+    public Dictionary<Vector3Int, TileData> GetAllTiles()
+    {
+        var allTiles = new Dictionary<Vector3Int, TileData>();
+        foreach (var chunkPair in loadedChunks)
+        {
+            foreach (var tilePair in chunkPair.Value.GetAllTiles())
+            {
+                allTiles[tilePair.Key] = tilePair.Value;
+            }
+        }
+        return allTiles;
+    }
+
+    public Dictionary<Vector3Int, TileData> AllTiles()
+    {
+        return GetAllTiles();
+    }
+
+    public Dictionary<Vector3Int, TileData> GetChunkTiles(int x, int z)
+    {
+        if (loadedChunks.TryGetValue((x, z), out var chunk))
+        {
+            return chunk.GetAllTiles();
+        }
+        else if (File.Exists(ChunkPath(x, z)))
+        {
+            var loaded = LoadChunkFromDisk(x, z);
+            return loaded.GetAllTiles();
+        }
+        return new Dictionary<Vector3Int, TileData>();
+    }
+
+    public bool HasChunk(Vector2Int key)
+    {
+        return chunkBiomes.ContainsKey(key);
+    }
+
     public void RemoveTile(Vector3Int pos)
     {
         var chunkCoords = WorldToChunk(pos);
@@ -108,9 +153,17 @@ public class ChunkedWorldArchive
         }
     }
 
-    // -----------------------------
-    // Save/Unload
-    // -----------------------------
+    public void SaveChunks(HashSet<(int x, int z)> affectedChunks)
+    {
+        foreach (var chunkCoord in affectedChunks)
+        {
+            if (loadedChunks.TryGetValue(chunkCoord, out var chunk))
+            {
+                SaveChunkToDisk(chunkCoord.x, chunkCoord.z, chunk);
+            }
+        }
+    }
+
     public void SaveAll()
     {
         var toSave = new List<(int x, int z)>(modifiedChunks);
@@ -125,6 +178,9 @@ public class ChunkedWorldArchive
         hasManualSave = true;
         modifiedChunks.Clear();
         modificationCounter = 0;
+
+        // --- NEW: Reset new tiles count after archiving ---
+        ResetTilesSpawnedSinceLastArchive();
     }
 
     public void UnloadDistantChunks(Vector3Int playerWorldPos)
@@ -153,9 +209,6 @@ public class ChunkedWorldArchive
         }
     }
 
-    // -----------------------------
-    // Helpers
-    // -----------------------------
     private void MaybeAutoSave()
     {
         if (modificationCounter >= SaveEveryNModifications)
@@ -302,6 +355,15 @@ public class Chunk : ISerializationCallbackReceiver
     public bool IsEmpty => tiles == null || tiles.Count == 0;
 
     public Chunk(int x, int z) { chunkX = x; chunkZ = z; }
+
+    /// <summary>
+    /// Returns true if there is a tile at the given position, false otherwise.
+    /// </summary>
+    public bool HasTile(Vector3Int pos)
+    {
+        if (tiles == null) return false;
+        return tiles.ContainsKey(GetKey(pos));
+    }
 
     public void SetTile(Vector3Int pos, TileData data)
     {
