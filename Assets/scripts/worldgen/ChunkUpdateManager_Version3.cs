@@ -10,7 +10,7 @@ using UnityEngine.Tilemaps;
 public class ChunkUpdateManager : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] public TileInfiniteCameraSpawner spawner;
+    [SerializeField] public InfiniteCameraSpawnerModular spawner;
 
     private Vector3Int lastTriggeredPlayerCell = new Vector3Int(int.MinValue, int.MinValue, int.MinValue);
 
@@ -80,11 +80,13 @@ public class ChunkUpdateManager : MonoBehaviour
                 lastTriggeredPlayerCell = playerCell;
 
                 // Update world for new player cell
-                spawner.UpdateWorldIfNeeded(playerCell);
+                // FIX: UpdateWorldIfNeeded should be called with NO arguments
+                spawner.UpdateWorldIfNeeded();
 
                 // Mark caves as discovered and unload distant archive chunks
                 if (spawner.worldArchiveManager != null && spawner.worldArchiveManager.worldArchive != null)
                 {
+                    // FIX: ChunkedWorldArchive is a class, use null check not '!'
                     ChunkUpdateManager.MarkCavesDiscoveredAroundPlayer(spawner.worldArchiveManager.worldArchive, playerCell);
                     spawner.worldArchiveManager.worldArchive.UnloadDistantChunks(playerCell);
                 }
@@ -205,6 +207,9 @@ public class ChunkUpdateManager : MonoBehaviour
         tilemap.SetTile(pos, tile);
     }
 
+    /// <summary>
+    /// Mark caves as discovered around player.
+    /// </summary>
     public static void MarkCavesDiscoveredAroundPlayer(ChunkedWorldArchive archive, Vector3 playerPosition, float radius = 4f)
     {
         if (archive == null) return;

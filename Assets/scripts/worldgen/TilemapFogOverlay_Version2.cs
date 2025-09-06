@@ -11,7 +11,7 @@ public class TilemapFogOverlay : MonoBehaviour
     public TileBase fogTile;
 
     public Camera mainCamera;
-    public TileCaveUtility caveUtility; // assign in inspector!
+ 
     public int caveSurfaceY = 0; // Assign surfaceY as appropriate, or get dynamically
 
     [Header("Fog Appearance")]

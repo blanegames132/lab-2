@@ -24,6 +24,8 @@ public class WorldArchiveManager : MonoBehaviour
     // Track chunks with new tiles added in this session before flush
     private HashSet<(int x, int z)> affectedChunks = new HashSet<(int x, int z)>();
 
+    private HashSet<Vector3Int> deletedTiles = new HashSet<Vector3Int>();
+
     public void Init(string seedString, bool enableArchive)
     {
         enableWorldArchive = enableArchive;
@@ -58,7 +60,7 @@ public class WorldArchiveManager : MonoBehaviour
         Vector3Int playerPos,
         float halfWidth,
         float discoveryRadius,
-        TileCaveUtility caveUtility,
+
         Func<int, int, int, int> getSurfaceY,
         Func<int, int, int, int> getChunkBuffer,
         Func<int, string> getBiomeTag,
@@ -70,13 +72,9 @@ public class WorldArchiveManager : MonoBehaviour
         if (existing != null) return;
 
         int surfaceY = getSurfaceY(x, y, z);
-        bool isCave = caveUtility != null && caveUtility.IsCaveAt(x, y, z, surfaceY);
-
         string tag = null;
 
-        if (isCave)
-            tag = "cave";
-        else if (y == surfaceY)
+        if (y == surfaceY)
             tag = "surface:" + getBiomeTag(biomeIndex);
         else if (y < surfaceY && y >= surfaceY - 1)
             tag = "subsurface:" + getBiomeTag(biomeIndex);
@@ -136,25 +134,45 @@ public class WorldArchiveManager : MonoBehaviour
         return "untagged";
     }
 
-    public void DeleteTile(Vector3Int pos, Tilemap groundTilemap, HashSet<Vector3Int> deletedTiles)
+    /// <summary>
+    /// Marks a tile as deleted and archives as air. Never respawn unless removed from deletedTiles.
+    /// </summary>
+    public void DeleteTile(Vector3Int pos, Tilemap groundTilemap, HashSet<Vector3Int> externalDeletedTiles)
     {
         if (groundTilemap != null)
             groundTilemap.SetTile(pos, null);
         ArchiveTile(pos, "air");
-        if (deletedTiles != null)
-            deletedTiles.Add(pos);
+        deletedTiles.Add(pos);
+        if (externalDeletedTiles != null)
+            externalDeletedTiles.Add(pos);
     }
 
+    /// <summary>
+    /// Marks a tile as deleted and archives as air.
+    /// </summary>
     public void DeleteTile(Vector3Int pos, Tilemap groundTilemap)
     {
         if (groundTilemap != null)
             groundTilemap.SetTile(pos, null);
         ArchiveTile(pos, "air");
+        deletedTiles.Add(pos);
     }
 
+    /// <summary>
+    /// Marks a tile as deleted and archives as air.
+    /// </summary>
     public void DeleteTile(Vector3Int pos)
     {
         ArchiveTile(pos, "air");
+        deletedTiles.Add(pos);
+    }
+
+    /// <summary>
+    /// Returns true if this tile is deleted (never respawn).
+    /// </summary>
+    public bool IsTileDeleted(Vector3Int pos)
+    {
+        return deletedTiles.Contains(pos);
     }
 
     public TileData TryGetTile(Vector3Int pos)
@@ -286,7 +304,7 @@ public class WorldArchiveManager : MonoBehaviour
         if (worldArchive != null)
         {
             Debug.Log("[ARCHIVED] All tiles in worldArchive (all loaded chunks):");
-            foreach (var pair in worldArchive.GetAllTiles()) // <--- FIXED!
+            foreach (var pair in worldArchive.GetAllTiles())
             {
                 Vector3Int pos = pair.Key;
                 TileData data = pair.Value;

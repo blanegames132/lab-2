@@ -3,16 +3,17 @@ using UnityEngine.Tilemaps;
 
 public class AlwaysStartOnGround : MonoBehaviour
 {
-    [SerializeField] private TileInfiniteCameraSpawner spawner;
-    [SerializeField] private Tilemap groundTilemap; // Assign your ground tilemap here
+    [SerializeField] private InfiniteCameraSpawnerModular spawner;
+    [SerializeField] private Tilemap groundTilemap;
+    [SerializeField] private ChunkedWorldArchive worldArchive;
 
     void Start()
     {
-        if (!spawner) spawner = FindObjectOfType<TileInfiniteCameraSpawner>();
+        if (!spawner) spawner = FindObjectOfType<InfiniteCameraSpawnerModular>();
         if (!groundTilemap) groundTilemap = FindObjectOfType<Tilemap>();
+        if (worldArchive == null && spawner != null && spawner.worldArchiveManager != null)
+            worldArchive = spawner.worldArchiveManager.worldArchive;
         ClampToNearestGroundAtStart();
-
-        // Reset all caves to undiscovered at game start
         ResetAllCavesToUndiscovered();
     }
 
@@ -20,7 +21,7 @@ public class AlwaysStartOnGround : MonoBehaviour
     {
         if (spawner == null || groundTilemap == null)
         {
-            Debug.LogWarning("No TileInfiniteCameraSpawner or ground tilemap found!");
+            Debug.LogWarning("No spawner or ground tilemap found!");
             return;
         }
         Vector3 pos = transform.position;
@@ -43,27 +44,24 @@ public class AlwaysStartOnGround : MonoBehaviour
         Debug.Log($"Player clamped to ground at {pos}");
     }
 
-    // --- Fixed: Use worldArchiveManager.worldArchive ---
     void ResetAllCavesToUndiscovered()
     {
-        if (spawner != null && spawner.enableWorldArchive
-            && spawner.worldArchiveManager != null
-            && spawner.worldArchiveManager.worldArchive != null)
+        if (worldArchive == null)
+            return;
+
+        var allTiles = worldArchive.AllTiles();
+        bool changed = false;
+        foreach (var pair in allTiles)
         {
-            var archive = spawner.worldArchiveManager.worldArchive;
-            bool changed = false;
-            foreach (var pair in archive.AllTiles())
+            TileData tileData = pair.Value;
+            if (tileData != null && tileData.blockTagOrName == "cave" && tileData.discovered)
             {
-                TileData tileData = pair.Value;
-                if (tileData != null && tileData.blockTagOrName == "cave" && tileData.discovered)
-                {
-                    tileData.discovered = false;
-                    archive.SetTile(pair.Key, tileData);
-                    changed = true;
-                }
+                tileData.discovered = false;
+                worldArchive.SetTile(pair.Key, tileData);
+                changed = true;
             }
-            if (changed)
-                archive.SaveAll();
         }
+        if (changed)
+            worldArchive.SaveAll();
     }
 }

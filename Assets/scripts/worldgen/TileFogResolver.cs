@@ -21,8 +21,7 @@ public class TileFogResolver : MonoBehaviour
         int surfaceY = Mathf.RoundToInt(hillValue * spawner.hillHeight);
 
         if (pos.y > surfaceY) return "air";
-        if (spawner.caveUtility != null && spawner.caveUtility.IsCaveAt(pos.x, pos.y, pos.z, surfaceY))
-            return "cave";
+
 
         // Use GetBiomeTag from the WorldArchiveManager!
         string biomeTag = spawner.worldArchiveManager.GetBiomeTag(biomeIndex);

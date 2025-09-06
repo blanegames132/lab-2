@@ -1,11 +1,30 @@
 using System;
 using UnityEngine;
 
+/// <summary>
+/// Applies random world seed values to an InfiniteCameraSpawnerModular instance.
+/// </summary>
 [Serializable]
 public class WorldSeedApplier : MonoBehaviour
 {
-    public void ApplySeed(TileInfiniteCameraSpawner spawner, SeedSelector seedSelector)
+    /// <summary>
+    /// Applies random terrain parameters to the spawner based on the seed in SeedSelector.
+    /// </summary>
+    /// <param name="spawner">The target spawner to apply seed values to</param>
+    /// <param name="seedSelector">The seed selector holding the seed</param>
+    public void ApplySeed(InfiniteCameraSpawnerModular spawner, SeedSelector seedSelector)
     {
+        if (spawner == null)
+        {
+            Debug.LogError("WorldSeedApplier: Spawner is null!");
+            return;
+        }
+        if (seedSelector == null)
+        {
+            Debug.LogError("WorldSeedApplier: SeedSelector is null!");
+            return;
+        }
+
         int hash = seedSelector.usedSeedInt;
         System.Random rand = new System.Random(hash);
 
@@ -26,18 +45,28 @@ public class WorldSeedApplier : MonoBehaviour
         spawner.randomHillCurve = GenerateRandomHillCurve(rand, spawner, seedSelector);
     }
 
+    /// <summary>
+    /// Returns a seeded float value in [min, max] using the given offset.
+    /// </summary>
     float SeededValue(System.Random rand, float min, float max, int offset)
     {
         rand = new System.Random(rand.Next() + offset);
         return min + ((float)rand.NextDouble() * (max - min));
     }
+
+    /// <summary>
+    /// Returns a seeded int value in [min, max) using the given offset.
+    /// </summary>
     int SeededInt(System.Random rand, int min, int max, int offset)
     {
         rand = new System.Random(rand.Next() + offset);
         return rand.Next(min, max);
     }
 
-    AnimationCurve GenerateRandomHillCurve(System.Random rand, TileInfiniteCameraSpawner spawner, SeedSelector seedSelector)
+    /// <summary>
+    /// Generates a random hill curve for terrain shape.
+    /// </summary>
+    AnimationCurve GenerateRandomHillCurve(System.Random rand, InfiniteCameraSpawnerModular spawner, SeedSelector seedSelector)
     {
         var randomHillCurve = new AnimationCurve();
         int numKeys = SeededInt(rand, 8, 20, 17);
