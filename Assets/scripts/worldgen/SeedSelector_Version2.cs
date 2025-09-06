@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+/// <summary>
+/// Selects and manages the world seed. Allows toggling and re-applying the seed.
+/// </summary>
 public class SeedSelector : MonoBehaviour
 {
     [Header("World Seed (leave blank for random)")]
@@ -15,15 +18,48 @@ public class SeedSelector : MonoBehaviour
     [ReadOnlyField] public string usedSeedString;
     [ReadOnlyField] public int usedSeedInt;
 
-    void Awake()
+    [Header("Seed Control")]
+    public bool applyRandomSeed = true;
+    public bool forceReapplySeed = false;
+
+    private void Awake()
     {
-        if (!string.IsNullOrWhiteSpace(worldSeed))
-            usedSeedString = worldSeed;
-        else
+        GenerateSeed(applyRandomSeed || string.IsNullOrWhiteSpace(worldSeed));
+    }
+
+    private void OnValidate()
+    {
+        // Allow toggling in editor
+        if (forceReapplySeed)
+        {
+            GenerateSeed(applyRandomSeed || string.IsNullOrWhiteSpace(worldSeed));
+            forceReapplySeed = false;
+        }
+    }
+
+    /// <summary>
+    /// Generates and sets the seed.
+    /// </summary>
+    /// <param name="random">If true, generate a random seed</param>
+    public void GenerateSeed(bool random)
+    {
+        if (random)
             usedSeedString = Guid.NewGuid().ToString("N");
+        else
+            usedSeedString = worldSeed;
 
         usedSeedInt = usedSeedString.GetHashCode();
     }
+
+    /// <summary>
+    /// Returns the current seed value as int.
+    /// </summary>
+    public int CurrentSeedInt => usedSeedInt;
+
+    /// <summary>
+    /// Returns the current seed value as string.
+    /// </summary>
+    public string CurrentSeedString => usedSeedString;
 }
 
 #if UNITY_EDITOR
@@ -39,4 +75,7 @@ public class ReadOnlyFieldDrawer : PropertyDrawer
 }
 #endif
 
+/// <summary>
+/// Attribute for marking fields as read-only in the inspector.
+/// </summary>
 public class ReadOnlyFieldAttribute : PropertyAttribute { }

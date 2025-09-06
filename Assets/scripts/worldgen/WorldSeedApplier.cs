@@ -3,16 +3,34 @@ using UnityEngine;
 
 /// <summary>
 /// Applies random world seed values to an InfiniteCameraSpawnerModular instance.
+/// Attach this to any GameObject and assign references in the inspector.
 /// </summary>
-[Serializable]
 public class WorldSeedApplier : MonoBehaviour
 {
+    [Header("References")]
+    public InfiniteCameraSpawnerModular spawner;
+    public SeedSelector seedSelector;
+
     /// <summary>
-    /// Applies random terrain parameters to the spawner based on the seed in SeedSelector.
+    /// Optionally apply seed automatically when the game starts.
     /// </summary>
-    /// <param name="spawner">The target spawner to apply seed values to</param>
-    /// <param name="seedSelector">The seed selector holding the seed</param>
-    public void ApplySeed(InfiniteCameraSpawnerModular spawner, SeedSelector seedSelector)
+    public bool applyOnStart = true;
+
+    void Start()
+    {
+        if (applyOnStart)
+        {
+            ApplySeed();
+            // Optionally, regenerate world immediately
+            if (spawner != null)
+                spawner.UpdateWorldIfNeeded();
+        }
+    }
+
+    /// <summary>
+    /// Applies random terrain parameters to the selected spawner based on the seed in SeedSelector.
+    /// </summary>
+    public void ApplySeed()
     {
         if (spawner == null)
         {

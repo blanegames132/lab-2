@@ -22,7 +22,7 @@ public class TileMultiMapHiddenSet : MonoBehaviour
     [Tooltip("Transform (e.g. Player) used as the center of the hide area.")]
     public Transform triggerTransform;
 
-    [Tooltip("Reference to ChunkedWorldArchive or spawner with archive.")]
+    [Tooltip("Reference to InfiniteCameraSpawnerModular spawner.")]
     public InfiniteCameraSpawnerModular spawner; // <-- Assign in Inspector or via code
 
     [Tooltip("Second visual radius for determinant/hide area (in tiles, XY). Set to 0 to disable.")]
@@ -69,14 +69,6 @@ public class TileMultiMapHiddenSet : MonoBehaviour
         if (!setHideTilesRuntime || configs == null || triggerTransform == null)
             return;
 
-        // Try to find archive
-        ChunkedWorldArchive archive = null;
-        // FIX: use spawner.worldArchiveManager.worldArchive, not spawner.worldArchive directly
-        if (spawner != null && spawner.enableWorldArchive && spawner.worldArchiveManager != null && spawner.worldArchiveManager.worldArchive != null)
-            archive = spawner.worldArchiveManager.worldArchive;
-
-        bool archiveChanged = false;
-
         foreach (var config in configs)
         {
             if (config == null || config.tilemap == null)
@@ -97,22 +89,14 @@ public class TileMultiMapHiddenSet : MonoBehaviour
                         config.tilemap.SetTile(cell, null);
                 }
 
-                // --- ARCHIVE SUPPORT: if this was a cave, set to air and NEVER reset to cave again ---
-                if (archive != null)
-                {
-                    TileData data = archive.TryGetTile(cell);
-                    if (data != null && data.blockTagOrName == "cave")
-                    {
-                        // Only replace if it is still a cave (never revert to cave after air)
-                        archive.SetTile(cell, new TileData { blockTagOrName = "air", discovered = false });
-                        archiveChanged = true;
-                    }
-                }
+                // --- ARCHIVE SUPPORT VIA EVENT BUS ---
+                // If this was a cave, set to air and permanently block cave respawn.
+                if (TileEventBus.QueryShouldBlockTile(cell)) continue; // Already blocked
+
+                // (If you want to permanently block cave respawn, broadcast a tile set of "air" here)
+                TileEventBus.BroadcastTileSet(config.tilemap, cell, null); // null means "air" for archiving
             }
         }
-
-        if (archiveChanged && archive != null)
-            archive.SaveAll();
     }
 
 #if UNITY_EDITOR

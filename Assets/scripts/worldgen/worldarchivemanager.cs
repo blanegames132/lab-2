@@ -1,104 +1,199 @@
-using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using System.Collections;
-using System.Collections.Generic;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class WorldArchiveManager : MonoBehaviour
 {
+    [Header("Archiving")]
     public bool enableWorldArchive = true;
-    public ChunkedWorldArchive worldArchive { get; private set; }
-    [SerializeField] public int chunkSize = 16;
-    [SerializeField] public BiomeManager biomeManager;
+    [SerializeField] private int chunkSize = 16;
+    [SerializeField] private string worldSeed = "defaultSeed";
 
-    private Dictionary<Vector3Int, TileData> pendingTiles = new Dictionary<Vector3Int, TileData>();
-    [SerializeField, Tooltip("Number of tiles currently queued for archiving (read-only)")]
-    private int queuedTileCount;
+    [Header("Camera Reference")]
+    public Camera mainCamera;
+    public Tilemap referenceTilemap;
+    [Min(1)] public int cameraArchiveBuffer = 8;
 
-    private Queue<Action> archiveQueue = new Queue<Action>();
-    private Coroutine archiveTrottleCoroutine = null;
+    [Header("Tilemaps to Save On Quit")]
+    public List<Tilemap> tilemapsToSaveOnQuit = new List<Tilemap>();
 
-    // Track last frame's movement key state
-    private bool wasMovementKeyPressed = false;
+    [Header("Performance Tuning")]
+    public int maxArchiveActionsPerFrame = 20;
 
-    // Track chunks with new tiles added in this session before flush
-    private HashSet<(int x, int z)> affectedChunks = new HashSet<(int x, int z)>();
+    [Header("Debug/Safety")]
+    public int maxArchiveQueueSize = 10000;
 
+    // Internal runtime fields (not shown in Inspector)
+    public ChunkedWorldArchive worldArchive;
     private HashSet<Vector3Int> deletedTiles = new HashSet<Vector3Int>();
+    private Dictionary<Vector3Int, TileData> pendingTiles = new Dictionary<Vector3Int, TileData>();
+    private Queue<System.Action> archiveQueue = new Queue<System.Action>();
+    private Coroutine archiveThrottleCoroutine = null;
+    private bool archivingStarted = false;
 
-    public void Init(string seedString, bool enableArchive)
+    // NEW: Keep track of chunks that need to be saved due to deletions
+    private HashSet<(int x, int z)> chunksNeedingSave = new HashSet<(int x, int z)>();
+
+#if UNITY_EDITOR
+    private void EditorEnable()
     {
-        enableWorldArchive = enableArchive;
-        if (enableWorldArchive)
-            worldArchive = new ChunkedWorldArchive(seedString, chunkSize);
-        else
-            worldArchive = null;
+        EditorApplication.playModeStateChanged += OnEditorPlayModeChanged;
+    }
+    private void EditorDisable()
+    {
+        EditorApplication.playModeStateChanged -= OnEditorPlayModeChanged;
+    }
+    private void OnEditorPlayModeChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.ExitingPlayMode)
+        {
+            ArchiveAllTilesOnQuit();
+            Debug.Log("WorldArchiveManager: Game stopped in Editor. ArchiveAllTilesOnQuit called.");
+        }
+    }
+#endif
+
+    private void Awake()
+    {
+        worldArchive = new ChunkedWorldArchive(worldSeed, chunkSize);
     }
 
-    public void ArchiveTile(Vector3Int pos, string tag)
+    private void OnEnable()
+    {
+        TileEventBus.ShouldBlockTile += ShouldBlockTile;
+        TileEventBus.OnTileDelete += HandleTileDelete;
+#if UNITY_EDITOR
+        EditorEnable();
+#endif
+    }
+    private void OnDisable()
+    {
+        TileEventBus.ShouldBlockTile -= ShouldBlockTile;
+        TileEventBus.OnTileDelete -= HandleTileDelete;
+#if UNITY_EDITOR
+        EditorDisable();
+#endif
+    }
+
+    private void Start()
     {
         if (enableWorldArchive && worldArchive != null)
         {
-            archiveQueue.Enqueue(() =>
-            {
-                pendingTiles[pos] = new TileData { blockTagOrName = tag };
-                affectedChunks.Add(WorldToChunk(pos));
-                UpdateInspectorCount();
-            });
-            TryStartTrottle();
+            CleanOrphanTiles();
         }
     }
 
-    public void ArchiveTileIfNeeded(
-        Vector3Int pos,
-        int x,
-        int y,
-        int z,
-        int biomeIndex,
-        bool isSurface,
-        int chunkX,
-        Vector3Int playerPos,
-        float halfWidth,
-        float discoveryRadius,
-
-        Func<int, int, int, int> getSurfaceY,
-        Func<int, int, int, int> getChunkBuffer,
-        Func<int, string> getBiomeTag,
-        int worldBottomY
-    )
+    private void CleanOrphanTiles()
     {
-        if (!(enableWorldArchive && worldArchive != null)) return;
-        var existing = worldArchive.TryGetTile(pos);
-        if (existing != null) return;
-
-        int surfaceY = getSurfaceY(x, y, z);
-        string tag = null;
-
-        if (y == surfaceY)
-            tag = "surface:" + getBiomeTag(biomeIndex);
-        else if (y < surfaceY && y >= surfaceY - 1)
-            tag = "subsurface:" + getBiomeTag(biomeIndex);
-        else if (y < surfaceY - 1 && y > worldBottomY)
-            tag = "ground:" + getBiomeTag(biomeIndex);
-        else if (y == worldBottomY)
-            tag = "bedrock:" + getBiomeTag(biomeIndex);
-        else
-            tag = "air";
-
-        if (string.IsNullOrEmpty(tag))
-            tag = (UnityEngine.Random.value > 0.5f) ? "unt1" : "unt2";
-
-        bool shouldDiscover = false;
-        if (tag == "cave" && Vector3.Distance(playerPos, pos) <= discoveryRadius)
-            shouldDiscover = true;
-
-        archiveQueue.Enqueue(() =>
+        int orphanCount = 0;
+        foreach (var tilemap in tilemapsToSaveOnQuit)
         {
-            pendingTiles[pos] = new TileData { blockTagOrName = tag, discovered = shouldDiscover };
-            affectedChunks.Add(WorldToChunk(pos));
-            UpdateInspectorCount();
-        });
-        TryStartTrottle();
+            if (tilemap == null) continue;
+            foreach (var cellPos in tilemap.cellBounds.allPositionsWithin)
+            {
+                if (tilemap.HasTile(cellPos))
+                {
+                    var archiveData = worldArchive.TryGetTile(cellPos);
+                    if (archiveData == null)
+                    {
+                        tilemap.SetTile(cellPos, null);
+                        orphanCount++;
+                    }
+                }
+            }
+        }
+        if (orphanCount > 0)
+            Debug.Log($"WorldArchiveManager: Removed {orphanCount} orphan tiles from scene at game start.");
+    }
+
+    // This is hooked up to TileEventBus so the spawner will never place deleted tiles.
+    public bool ShouldBlockTile(Vector3Int pos)
+    {
+        return enableWorldArchive && deletedTiles.Contains(pos);
+    }
+
+    public void OnTileSet(Tilemap tilemap, Vector3Int pos, TileBase tile)
+    {
+        if (!archivingStarted || !enableWorldArchive) return;
+        if (IsInCameraArea(pos))
+        {
+            if (archiveQueue.Count < maxArchiveQueueSize)
+            {
+                archiveQueue.Enqueue(() =>
+                {
+                    pendingTiles[pos] = new TileData { blockTagOrName = tile != null ? tile.name : "air" };
+                    deletedTiles.Remove(pos); // If respawned by user, unmark as deleted
+                    var chunkCoord = WorldToChunk(pos);
+                    chunksNeedingSave.Remove(chunkCoord); // If tile is placed, remove from needing save
+                });
+            }
+            else
+            {
+                Debug.LogWarning($"WorldArchiveManager: Archive queue overflow! Dropping archive for tile {pos}");
+            }
+            TryStartThrottle();
+        }
+    }
+
+    /// <summary>
+    /// Called when a tile is deleted (queued, not instant)
+    /// </summary>
+    public void OnTileDelete(Tilemap tilemap, Vector3Int pos)
+    {
+        if (!archivingStarted && enableWorldArchive)
+        {
+            archivingStarted = true;
+            Debug.Log("WorldArchiveManager: Archiving started after first block deletion.");
+        }
+        if (!archivingStarted || !enableWorldArchive) return;
+        if (IsInCameraArea(pos))
+        {
+            if (archiveQueue.Count < maxArchiveQueueSize)
+            {
+                archiveQueue.Enqueue(() =>
+                {
+                    pendingTiles[pos] = new TileData { blockTagOrName = "air" };
+                    deletedTiles.Add(pos);
+                    var chunkCoord = WorldToChunk(pos);
+                    chunksNeedingSave.Add(chunkCoord);
+                    if (tilemap != null)
+                        tilemap.SetTile(pos, null);
+                    // INSTANT SAVE for this chunk if desired
+                    worldArchive.SaveChunks(new HashSet<(int x, int z)> { chunkCoord });
+                    Debug.Log($"WorldArchiveManager: Instantly saved chunk {chunkCoord} due to deletion at {pos}.");
+                });
+            }
+            else
+            {
+                Debug.LogWarning($"WorldArchiveManager: Archive queue overflow! Dropping archive for tile {pos}");
+            }
+            TryStartThrottle();
+        }
+    }
+
+    /// <summary>
+    /// Called instantly when event bus triggers a tile delete (not queued)
+    /// </summary>
+    private void HandleTileDelete(Tilemap tilemap, Vector3Int pos)
+    {
+        if (enableWorldArchive && worldArchive != null)
+        {
+            worldArchive.RemoveTile(pos);
+            deletedTiles.Add(pos);
+            var chunkCoord = WorldToChunk(pos);
+            chunksNeedingSave.Add(chunkCoord);
+            pendingTiles.Remove(pos);
+            if (tilemap != null)
+                tilemap.SetTile(pos, null);
+
+            // INSTANT SAVE for this chunk (so it's always up to date after click)
+            worldArchive.SaveChunks(new HashSet<(int x, int z)> { chunkCoord });
+            Debug.Log($"WorldArchiveManager: Instantly saved chunk {chunkCoord} after deletion at {pos}.");
+        }
     }
 
     private (int x, int z) WorldToChunk(Vector3Int pos)
@@ -107,209 +202,82 @@ public class WorldArchiveManager : MonoBehaviour
                 Mathf.FloorToInt((float)pos.z / chunkSize));
     }
 
-    private void TryStartTrottle()
+    private void TryStartThrottle()
     {
-        if (archiveTrottleCoroutine == null && archiveQueue.Count > 0)
-        {
-            archiveTrottleCoroutine = StartCoroutine(ArchiveTrottleRoutine());
-        }
+        if (archiveThrottleCoroutine == null && archiveQueue.Count > 0)
+            archiveThrottleCoroutine = StartCoroutine(ArchiveThrottleRoutine());
     }
 
-    private IEnumerator ArchiveTrottleRoutine()
+    private System.Collections.IEnumerator ArchiveThrottleRoutine()
     {
         while (archiveQueue.Count > 0)
         {
-            var action = archiveQueue.Dequeue();
-            action.Invoke();
-            yield return null;
-        }
-        archiveTrottleCoroutine = null;
-    }
-
-    public string GetBiomeTag(int biomeIdx)
-    {
-        if (biomeManager != null && biomeManager.biomes != null &&
-            biomeIdx >= 0 && biomeIdx < biomeManager.biomes.Count)
-            return biomeManager.biomes[biomeIdx].name.Trim().ToLower();
-        return "untagged";
-    }
-
-    /// <summary>
-    /// Marks a tile as deleted and archives as air. Never respawn unless removed from deletedTiles.
-    /// </summary>
-    public void DeleteTile(Vector3Int pos, Tilemap groundTilemap, HashSet<Vector3Int> externalDeletedTiles)
-    {
-        if (groundTilemap != null)
-            groundTilemap.SetTile(pos, null);
-        ArchiveTile(pos, "air");
-        deletedTiles.Add(pos);
-        if (externalDeletedTiles != null)
-            externalDeletedTiles.Add(pos);
-    }
-
-    /// <summary>
-    /// Marks a tile as deleted and archives as air.
-    /// </summary>
-    public void DeleteTile(Vector3Int pos, Tilemap groundTilemap)
-    {
-        if (groundTilemap != null)
-            groundTilemap.SetTile(pos, null);
-        ArchiveTile(pos, "air");
-        deletedTiles.Add(pos);
-    }
-
-    /// <summary>
-    /// Marks a tile as deleted and archives as air.
-    /// </summary>
-    public void DeleteTile(Vector3Int pos)
-    {
-        ArchiveTile(pos, "air");
-        deletedTiles.Add(pos);
-    }
-
-    /// <summary>
-    /// Returns true if this tile is deleted (never respawn).
-    /// </summary>
-    public bool IsTileDeleted(Vector3Int pos)
-    {
-        return deletedTiles.Contains(pos);
-    }
-
-    public TileData TryGetTile(Vector3Int pos)
-    {
-        if (enableWorldArchive && worldArchive != null)
-            return worldArchive.TryGetTile(pos);
-        return null;
-    }
-
-    public void SaveAll()
-    {
-        FlushArchiveToDisk();
-    }
-
-    void OnApplicationQuit()
-    {
-        FlushArchiveToDisk();
-        if (enableWorldArchive && worldArchive != null)
-        {
-            worldArchive.SaveAll();
-            Debug.Log("WorldArchiveManager: saved on exit.");
-        }
-    }
-
-    void FlushArchiveToDisk()
-    {
-        if (pendingTiles.Count > 0 && enableWorldArchive && worldArchive != null)
-        {
-            // Only flush chunks that have new tiles
-            var chunkTileMap = new Dictionary<(int x, int z), List<KeyValuePair<Vector3Int, TileData>>>();
-            foreach (var kvp in pendingTiles)
-            {
-                var chunkCoord = WorldToChunk(kvp.Key);
-                if (!chunkTileMap.ContainsKey(chunkCoord))
-                    chunkTileMap[chunkCoord] = new List<KeyValuePair<Vector3Int, TileData>>();
-                chunkTileMap[chunkCoord].Add(kvp);
-            }
-
-            foreach (var chunkCoord in chunkTileMap.Keys)
-            {
-                foreach (var kvp in chunkTileMap[chunkCoord])
-                {
-                    worldArchive.SetTile(kvp.Key, kvp.Value);
-                }
-            }
-            worldArchive.SaveChunks(affectedChunks); // Save only affected chunks
-            Debug.Log($"WorldArchiveManager: batch-saved {pendingTiles.Count} tiles to {affectedChunks.Count} affected chunks.");
-            pendingTiles.Clear();
-            affectedChunks.Clear();
-            UpdateInspectorCount();
-        }
-    }
-
-    void Update()
-    {
-        bool isMovementKeyPressed = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A)
-            || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D)
-            || Input.GetKey(KeyCode.Space);
-
-        // Only flush when movement keys transition from pressed -> not pressed
-        if (!isMovementKeyPressed && wasMovementKeyPressed)
-        {
-            if (archiveTrottleCoroutine != null)
-                StopCoroutine(archiveTrottleCoroutine);
-            while (archiveQueue.Count > 0)
+            int actionsThisFrame = 0;
+            while (actionsThisFrame < maxArchiveActionsPerFrame && archiveQueue.Count > 0)
             {
                 var action = archiveQueue.Dequeue();
                 action.Invoke();
+                actionsThisFrame++;
             }
-            FlushArchiveToDisk();
-            ShowAllTilesQueuedAndArchived();
+            if (actionsThisFrame > 0)
+                Debug.Log($"WorldArchiveManager: Processed {actionsThisFrame} archive actions this frame. {archiveQueue.Count} remain.");
+            yield return null;
         }
-
-        wasMovementKeyPressed = isMovementKeyPressed;
+        archiveThrottleCoroutine = null;
     }
 
-    private void UpdateInspectorCount()
+    public bool IsInCameraArea(Vector3Int cell)
     {
-        queuedTileCount = pendingTiles.Count;
+        if (mainCamera == null || referenceTilemap == null) return true;
+        Vector3 camMin = mainCamera.ViewportToWorldPoint(new Vector3(0, 0, mainCamera.nearClipPlane));
+        Vector3 camMax = mainCamera.ViewportToWorldPoint(new Vector3(1, 1, mainCamera.nearClipPlane));
+        Vector3Int minCell = referenceTilemap.WorldToCell(camMin);
+        Vector3Int maxCell = referenceTilemap.WorldToCell(camMax);
+        minCell.x -= cameraArchiveBuffer;
+        minCell.y -= cameraArchiveBuffer;
+        maxCell.x += cameraArchiveBuffer;
+        maxCell.y += cameraArchiveBuffer;
+        return cell.x >= minCell.x && cell.x <= maxCell.x &&
+               cell.y >= minCell.y && cell.y <= maxCell.y;
     }
 
     /// <summary>
-    /// Shows all tiles queued and archived, including all tiles in the world and in each affected chunk.
+    /// Archives ALL existing tiles in all tilemaps in tilemapsToSaveOnQuit and saves to disk.
+    /// This is called on quit or when play mode is stopped.
     /// </summary>
-    [ContextMenu("Show All Tiles Queued And Archived")]
-    public void ShowAllTilesQueuedAndArchived()
+    public void ArchiveAllTilesOnQuit()
     {
-        // Show all currently queued (not flushed) tiles
-        if (pendingTiles.Count > 0)
+        if (!enableWorldArchive || worldArchive == null)
         {
-            Debug.Log($"[QUEUED] Tiles currently queued in RAM ({pendingTiles.Count}):");
-            foreach (var kvp in pendingTiles)
-            {
-                Vector3Int pos = kvp.Key;
-                TileData data = kvp.Value;
-                Debug.Log($"[QUEUED] Pos: {pos} | Tag: {data.blockTagOrName} | Discovered: {data.discovered}");
-            }
-        }
-        else
-        {
-            Debug.Log("[QUEUED] No tiles are currently queued in RAM.");
+            Debug.LogWarning("WorldArchiveManager: Archiving disabled or archive not present.");
+            return;
         }
 
-        // Show all archived tiles only from affected chunks
-        if (worldArchive != null && affectedChunks.Count > 0)
+        Debug.Log("WorldArchiveManager: Archiving ALL tiles in scene to disk...");
+        int archivedCount = 0;
+        foreach (var tilemap in tilemapsToSaveOnQuit)
         {
-            foreach (var chunkCoord in affectedChunks)
+            if (tilemap == null) continue;
+            foreach (var cellPos in tilemap.cellBounds.allPositionsWithin)
             {
-                var tiles = worldArchive.GetChunkTiles(chunkCoord.x, chunkCoord.z);
-                Debug.Log($"[ARCHIVED] Tiles in chunk ({chunkCoord.x},{chunkCoord.z}):");
-                foreach (var kvp in tiles)
+                if (tilemap.HasTile(cellPos))
                 {
-                    Vector3Int pos = kvp.Key;
-                    TileData data = kvp.Value;
-                    Debug.Log($"[ARCHIVED] Pos: {pos} | Tag: {data.blockTagOrName} | Discovered: {data.discovered}");
+                    var tile = tilemap.GetTile(cellPos);
+                    worldArchive.SetTile(cellPos, new TileData { blockTagOrName = tile != null ? tile.name : "air" });
+                    archivedCount++;
                 }
             }
         }
-        else if (worldArchive != null)
-        {
-            Debug.Log("[ARCHIVED] No affected chunks to show.");
-        }
-        else
-        {
-            Debug.Log("[ARCHIVED] No worldArchive instance available.");
-        }
 
-        // Show all archived tiles from all loaded chunks in the world archive
-        if (worldArchive != null)
-        {
-            Debug.Log("[ARCHIVED] All tiles in worldArchive (all loaded chunks):");
-            foreach (var pair in worldArchive.GetAllTiles())
-            {
-                Vector3Int pos = pair.Key;
-                TileData data = pair.Value;
-                Debug.Log($"[ARCHIVED] Pos: {pos} | Tag: {data.blockTagOrName} | Discovered: {data.discovered}");
-            }
-        }
+        // Save ALL chunks (as you requested)
+        worldArchive.SaveAll();
+
+        Debug.Log($"WorldArchiveManager: Finished archiving. Saved {archivedCount} tiles to disk.");
+    }
+
+    private void OnApplicationQuit()
+    {
+        ArchiveAllTilesOnQuit();
+        Debug.Log("WorldArchiveManager: Game stopped or quit. ArchiveAllTilesOnQuit called.");
     }
 }

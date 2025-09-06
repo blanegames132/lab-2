@@ -128,21 +128,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 127414185}
-  - component: {fileID: 127414187}
   - component: {fileID: 127414189}
-  - component: {fileID: 127414190}
-  - component: {fileID: 127414191}
   - component: {fileID: 127414192}
   - component: {fileID: 127414193}
   - component: {fileID: 127414194}
-  - component: {fileID: 127414195}
-  - component: {fileID: 127414197}
-  - component: {fileID: 127414199}
-  - component: {fileID: 127414200}
-  - component: {fileID: 127414201}
-  - component: {fileID: 127414202}
   - component: {fileID: 127414203}
-  - component: {fileID: 127414204}
   - component: {fileID: 127414205}
   - component: {fileID: 127414206}
   - component: {fileID: 127414207}
@@ -150,6 +140,8 @@ GameObject:
   - component: {fileID: 127414210}
   - component: {fileID: 127414209}
   - component: {fileID: 127414211}
+  - component: {fileID: 127414213}
+  - component: {fileID: 127414212}
   m_Layer: 0
   m_Name: tilemanager
   m_TagString: Untagged
@@ -172,28 +164,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &127414187
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f0c56526393669a4094b4c161117e361, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  debugTilemap: {fileID: 1367466478}
-  debugOrangeTileAsset: {fileID: 11400000, guid: 8e4c5ab312251b2409d0f71a6827581f, type: 2}
-  debugRadius: 4
-  debugShowHiddenTiles: 0
-  debugShowColliders: 0
-  groundTilemap: {fileID: 1367466478}
-  middleFrontTilemap: {fileID: 854121014}
-  middleBackTilemap: {fileID: 1899764065}
-  frontTilemap: {fileID: 2050080548}
-  backTilemap: {fileID: 840299867}
 --- !u!114 &127414189
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -214,38 +184,10 @@ MonoBehaviour:
     bubbleHideRadius: 5
     hideTileAsset: {fileID: 0}
   triggerTransform: {fileID: 892277581}
-  spawner: {fileID: 127414192}
+  spawner: {fileID: 127414209}
   determinantRadius: 0
   gizmoVerticalOffset: 0.25
   setHideTilesRuntime: 1
---- !u!114 &127414190
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d3348971f18d7fb49be8647b855333f2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  groundTilemap: {fileID: 1367466478}
-  playerTransform: {fileID: 892277581}
-  radius: 10
-  spawner: {fileID: 127414192}
---- !u!114 &127414191
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 23258ca71cf82b746bab41e7047cf338, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &127414192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -258,984 +200,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5006a8c04160b14eb15685efdb94de3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  seedSelector: {fileID: 127414205}
-  worldSeedApplier: {fileID: 127414206}
-  worldArchiveManager: {fileID: 0}
-  biomeManager: {fileID: 0}
-  enableWorldArchive: 1
-  fallbackMono: {fileID: 127414209}
-  hillCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 2.6732953
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.01010101
-      value: 2.6732953
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.02020202
-      value: 2.6720557
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.030303031
-      value: 2.6720557
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.04040404
-      value: 2.6711538
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.05050505
-      value: 2.6711538
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.060606062
-      value: 2.6700034
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.07070707
-      value: 2.6700034
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.08080808
-      value: 2.6642423
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.09090909
-      value: 2.6642423
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.1010101
-      value: 2.6611273
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.11111111
-      value: 2.6611273
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.121212125
-      value: 2.6691751
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.13131313
-      value: 2.6650739
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.14141414
-      value: 2.6650739
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.15151516
-      value: 2.6675432
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.16161616
-      value: 2.6675432
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.17171717
-      value: 2.6653528
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.18181819
-      value: 2.6653528
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.1919192
-      value: 2.6639748
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.2020202
-      value: 2.6639748
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.21212122
-      value: 2.6623626
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.22222222
-      value: 2.6623626
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.23232323
-      value: 2.6621833
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.24242425
-      value: 2.6621833
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.25252524
-      value: 2.661218
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.26262626
-      value: 2.661218
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.27272728
-      value: 2.660272
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.28282827
-      value: 2.660272
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.2929293
-      value: 2.6598089
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.3030303
-      value: 2.6598089
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.3131313
-      value: 2.6584218
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.32323232
-      value: 2.6584218
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.33333334
-      value: 2.656238
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.34343433
-      value: 2.656238
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.35353535
-      value: 2.656123
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.36363637
-      value: 2.656123
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.37373737
-      value: 2.6551218
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.3838384
-      value: 2.6551218
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.3939394
-      value: 2.659286
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.4040404
-      value: 2.659286
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.41414142
-      value: 2.6534498
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.42424244
-      value: 2.6534498
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.43434343
-      value: 2.6546378
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.44444445
-      value: 2.6546378
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.45454547
-      value: 2.6568642
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.46464646
-      value: 2.6568642
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.47474748
-      value: 2.6506135
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.4848485
-      value: 2.6506135
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.4949495
-      value: 2.6497748
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.5050505
-      value: 2.6497748
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.5151515
-      value: 2.6443722
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.5252525
-      value: 2.6443722
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.53535354
-      value: 2.6479366
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.54545456
-      value: 2.6479366
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.5555556
-      value: 2.646562
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.56565654
-      value: 2.646562
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.57575756
-      value: 2.6459115
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.5858586
-      value: 2.6459115
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.5959596
-      value: 2.6450968
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.6060606
-      value: 2.6450968
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.61616164
-      value: 2.6440635
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.6262626
-      value: 2.6440635
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.6363636
-      value: 2.641395
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.64646465
-      value: 2.641395
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.65656567
-      value: 2.6406245
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.6666667
-      value: 2.6406245
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.67676765
-      value: 2.6411307
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.68686867
-      value: 2.6411307
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.6969697
-      value: 2.6402137
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.7070707
-      value: 2.6402137
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.7171717
-      value: 2.6391191
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.72727275
-      value: 2.6391191
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.7373737
-      value: 2.6381536
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.74747473
-      value: 2.6381536
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.75757575
-      value: 2.6379325
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.7676768
-      value: 2.6379325
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.7777778
-      value: 2.6358354
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.7878788
-      value: 2.6358354
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.7979798
-      value: 2.6271682
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.8080808
-      value: 2.6271682
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.8181818
-      value: 2.6341221
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.82828283
-      value: 2.6341221
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.83838385
-      value: 2.6285062
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.8484849
-      value: 2.6285062
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.85858583
-      value: 2.6319525
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.86868685
-      value: 2.6319525
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.8787879
-      value: 2.6310399
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.8888889
-      value: 2.6310399
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.8989899
-      value: 2.6310265
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.90909094
-      value: 2.6310265
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.9191919
-      value: 2.6290011
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.9292929
-      value: 2.6290011
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.93939394
-      value: 2.6285658
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.94949496
-      value: 2.6285658
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.959596
-      value: 2.6269445
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.969697
-      value: 2.6269445
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.97979796
-      value: 2.6257765
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.989899
-      value: 2.6257765
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 2.6170008
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  hillHeight: 14.070726
-  cliffSharpness: 2.8605235
-  seedAmplitude: 1.9798834
-  seedScale: 0.057109524
-  hillNoiseScale: 1.0777035
-  hillCurveRandomJitter: 0.2172158
-  hillRandomAmplitude: 0.54176134
-  hillVerticalShift: -0.87213707
-  buildDepthBelowPlayer: 50
-  groundTilemap: {fileID: 1367466478}
-  frontTilemap: {fileID: 2050080548}
-  middleFrontTilemap: {fileID: 1899764065}
-  middleBackTilemap: {fileID: 854121014}
-  backTilemap: {fileID: 840299867}
-  playerTransform: {fileID: 892277581}
-  buffer: 2
-  tilemapZSpacings:
-  - tilemap: {fileID: 1367466478}
-    zSpacing: 0
-  - tilemap: {fileID: 1899764065}
-    zSpacing: 1
-  - tilemap: {fileID: 854121014}
-    zSpacing: -1
-  - tilemap: {fileID: 2050080548}
-    zSpacing: 2
-  - tilemap: {fileID: 840299867}
-    zSpacing: -2
-  caveUtility: {fileID: 127414193}
-  repeatRange: 0
-  curveShift: -0.4414236
-  perlinOffsetX: 87.81698
-  perlinOffsetZ: 82.680176
-  perlinStrength: 0.46694446
-  perlinBase: 0.9778771
-  worldBottomY: -500
-  ChunkSize: 10
-  ChunksVisible: 10
-  ChunksGenerated: 13
-  randomHillCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0.3925113
-      value: 0.78116083
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 136
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 0.53518397
-      value: 0.72978115
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 136
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  chunkUpdateManager: {fileID: 127414203}
-  deleteQueueTilemap: {fileID: 1097561806}
-  lastPlayerCell: {x: -2147483648, y: -2147483648, z: -2147483648}
-  lastTriggeredPlayerCell: {x: -2147483648, y: -2147483648, z: -2147483648}
+  availableWorlds:
+  - displayName: world
+    worldSpawnerPrefab: {fileID: 127414184}
+  selectedWorldIndex: 1
+  worldDropdown: {fileID: 0}
 --- !u!114 &127414193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1248,7 +217,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d46087f64d8356e4ca37fe15e73ee152, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawner: {fileID: 127414192}
+  spawner: {fileID: 127414209}
+  surfaceCavesEnabled: 1
+  subsurfaceCavesEnabled: 1
+  deepCavesEnabled: 1
   caveFrequency: 0.09
   caveThreshold: 0.5
   caveHorizontalMultiplier: 1
@@ -1262,6 +234,16 @@ MonoBehaviour:
   caveVerticalScale: 0
   caveHorizontalScale: 0
   surfaceDepth: 10
+  tunnelTargetDepth: 44
+  tunnelBranchLength: 60
+  roomFrequency: 0.045
+  roomThreshold: 0.72
+  roomSizeMultiplier: 2.3
+  subsurfaceCaveFrequency: 0.22
+  subsurfaceCaveThreshold: 0.69
+  subsurfaceCaveSizeMultiplier: 0.18
+  subsurfaceMinDepth: 7
+  subsurfaceMaxDepth: 22
   caveEntranceChance: 0.3
   caveEntranceZigzag: 1.47
   caveEntranceWidth: 4
@@ -1282,7 +264,7 @@ MonoBehaviour:
   z: 0
   debug: 0
   targetZLayer: 0
-  debugFog: 1
+  debugFog: 0
   targetZLayerFog: 0
   deleteCavesInRadius: 0
   deleteCavesRadius: 10
@@ -1300,78 +282,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1bb8b6c875419044ab33c35a20c13cb6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &127414195
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00bdada17c5d5034f939787cdbbd1a50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &127414197
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ca94bde042d38142bf3e9c7163310ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &127414199
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 55b748fe386398646be073eb02e34d2b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &127414200
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6dfebdb16637e24f946354cd8e2ca1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &127414201
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7e0a4efbe8949844dbff45c8f0c89cba, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &127414202
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b3d5c2db88947d3418c4a2623653df1a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &127414203
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1384,7 +294,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d19ddab50163b7f48afca300bfdc92d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawner: {fileID: 127414192}
+  spawner: {fileID: 127414209}
   maxChunksPerFrame: 5
   maxBufferChunksPerFrame: 1
   updateDistance: 100
@@ -1393,26 +303,6 @@ MonoBehaviour:
   chunkDeleteDistance: 192
   bufferProcessFrameSkip: 500
   deleteProcessFrameSkip: 50
---- !u!114 &127414204
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7d56dc450e2fc14d8e2cb1379d6f2a0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetTilemaps:
-  - {fileID: 1011403248}
-  - {fileID: 1976309881}
-  - {fileID: 1252015340}
-  centerTransform: {fileID: 892277581}
-  radius: 4
-  runEveryFrame: 1
-  debug: 1
 --- !u!114 &127414205
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1428,6 +318,8 @@ MonoBehaviour:
   worldSeed: 
   usedSeedString: 
   usedSeedInt: 0
+  applyRandomSeed: 1
+  forceReapplySeed: 0
 --- !u!114 &127414206
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1440,6 +332,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37cf3e2ca5629184ca739e4dc6a2c719, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  spawner: {fileID: 127414209}
+  seedSelector: {fileID: 127414205}
+  applyOnStart: 1
 --- !u!114 &127414207
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1454,7 +349,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enableWorldArchive: 1
   chunkSize: 16
-  biomeManager: {fileID: 127414208}
+  worldSeed: defaultSeed
+  mainCamera: {fileID: 519420031}
+  referenceTilemap: {fileID: 1367466478}
+  cameraArchiveBuffer: 8
+  tilemapsToSaveOnQuit:
+  - {fileID: 1367466478}
+  - {fileID: 1899764065}
+  - {fileID: 854121014}
+  - {fileID: 840299867}
+  - {fileID: 2050080548}
+  maxArchiveActionsPerFrame: 20
+  maxArchiveQueueSize: 100
 --- !u!114 &127414208
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1467,17 +373,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38f064c71103bca4fa832000a1e908ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  biomes:
-  - name: 
-    surfaceTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
-    subsurfaceTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
-    groundTile: {fileID: 11400000, guid: e566a846a95a6274aa3495dc34075623, type: 2}
-    bedrockTile: {fileID: 11400000, guid: 3f5069fe6ff5cc046819ee049347ef17, type: 2}
-  - name: 
-    surfaceTile: {fileID: 11400000, guid: cc61c2ff6ce134d498c83d4f5e1046ca, type: 2}
-    subsurfaceTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
-    groundTile: {fileID: 11400000, guid: e566a846a95a6274aa3495dc34075623, type: 2}
-    bedrockTile: {fileID: 11400000, guid: 3f5069fe6ff5cc046819ee049347ef17, type: 2}
 --- !u!114 &127414209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1490,6 +385,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c824f7b7eb9df3c4d95c13aea766d122, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  seedScale: 0.03
+  seedAmplitude: 1
+  hillHeight: 8
+  hillCurveRandomJitter: 0.1
+  hillRandomAmplitude: 0.2
+  hillNoiseScale: 0.07
+  curveShift: 0
+  perlinOffsetX: 0
+  perlinOffsetZ: 0
+  perlinStrength: 1
+  perlinBase: 0
+  hillVerticalShift: -5
+  cliffSharpness: 2
+  canyonThreshold: 0.92
+  randomHillCurve:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  tilemapZSpacings:
+  - tilemap: {fileID: 1367466478}
+    zSpacing: 0
   groundTilemap: {fileID: 1367466478}
   frontTilemap: {fileID: 2050080548}
   middleFrontTilemap: {fileID: 1899764065}
@@ -1499,20 +417,32 @@ MonoBehaviour:
   defaultSubsurfaceTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   defaultGroundTile: {fileID: 11400000, guid: a621ef32daeab7040bd5ffe8291402a3, type: 2}
   defaultBedrockTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
+  defaultAirTile: {fileID: 0}
   playerTransform: {fileID: 892277581}
   biomeManagerFallback: {fileID: 127414210}
   selectedBiomeName: 
   selectedBiomeIndex: 0
   visualAreaSize: 30
   tilesBelow: 50
-  hillHeight: 8
-  seedScale: 0.03
-  hillNoiseScale: 0.07
-  cliffSharpness: 2
-  hillVerticalShift: -5
-  canyonThreshold: 0.92
-  worldArchiveMa: {fileID: 127414211}
-  archiveFlushInterval: 5
+  worldBottomY: -100
+  chunkSize: 16
+  chunksSpawnDistance: 10
+  chunkManager: {fileID: 0}
+  groundCaveUtility: {fileID: 127414193}
+  frontCaveUtility: {fileID: 127414193}
+  middleFrontCaveUtility: {fileID: 127414193}
+  middleBackCaveUtility: {fileID: 127414193}
+  backCaveUtility: {fileID: 127414193}
+  groundSeed: 101
+  frontSeed: 202
+  middleFrontSeed: 303
+  middleBackSeed: 404
+  backSeed: 505
+  groundZOffset: 0
+  frontZOffset: 1
+  middleFrontZOffset: 2
+  middleBackZOffset: -1
+  backZOffset: -2
 --- !u!114 &127414210
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1540,9 +470,52 @@ MonoBehaviour:
   m_GameObject: {fileID: 127414184}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9451cf83737b8642a2a3dac2bc782ad, type: 3}
+  m_Script: {fileID: 11500000, guid: d3348971f18d7fb49be8647b855333f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  groundTilemap: {fileID: 1367466478}
+  playerTransform: {fileID: 892277581}
+  radius: 3
+--- !u!114 &127414212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a5c3f068e6834548ad969c908edfb15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawner: {fileID: 127414209}
+  chunkSize: 16
+  chunkRadius: 3
+  drawGizmos: 1
+  loadedColor: {r: 0, g: 1, b: 0, a: 1}
+  neededColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+--- !u!114 &127414213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86cb581137ccb3c4abb82c275718e2ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  surfaceTilemaps: []
+  DefaultGroundTilemap: {fileID: 1367466478}
+  hillNoiseScale: 0.08
+  cliffSharpness: 2
+  hillHeight: 12
+  hillVerticalShift: 0
+  canyonThreshold: 0.9
+  groundSeed: 101
+  groundZOffset: 0
+  defaultAirTile: {fileID: 0}
 --- !u!1 &139177888
 GameObject:
   m_ObjectHideFlags: 0
@@ -1595,7 +568,6 @@ MonoBehaviour:
   fogTilemap: {fileID: 139177894}
   fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   mainCamera: {fileID: 519420031}
-  caveUtility: {fileID: 127414193}
   caveSurfaceY: 0
   fogColor: {r: 1, g: 0, b: 0, a: 0.6}
   enableHideLogic: 0
@@ -2148,7 +1120,6 @@ MonoBehaviour:
   fogTilemap: {fileID: 399802581}
   fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   mainCamera: {fileID: 519420031}
-  caveUtility: {fileID: 127414193}
   caveSurfaceY: 0
   fogColor: {r: 1, g: 0.82732826, b: 0, a: 1}
   enableHideLogic: 1
@@ -3390,8 +2361,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e53952188c60a2a4ba4d312440fdb007, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawner: {fileID: 127414192}
+  surfaceFinder: {fileID: 127414213}
   groundTilemap: {fileID: 1367466478}
+  surfaceSearchMaxY: 128
+  surfaceSearchMinY: -128
 --- !u!114 &892277592
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3454,7 +2427,7 @@ MonoBehaviour:
   middleBackTilemap: {fileID: 854121014}
   middlefrontTilemap: {fileID: 1899764065}
   zCheckDistance: 1
-  spawner: {fileID: 127414192}
+  spawner: {fileID: 0}
   debugLogging: 1
   showZBlockStateRepeatedly: 0
   statusLogInterval: 1
@@ -3703,22 +2676,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e3a1931133884b45b6d8e3dbd994d9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyPrefab: {fileID: 3685190898768921614, guid: ec33a7642bc1ea642b719cc749fb8639, type: 3}
-  spawner: {fileID: 0}
-  playerTransform: {fileID: 892277581}
-  spawnChance: 0.204
-  maxEnemies: 20
-  spawnZBand: 2
-  spawnLeftMinX: -20
-  spawnLeftMaxX: -4
-  spawnRightMinX: 4
-  spawnRightMaxX: 20
-  despawnLeftAbsX: -30
-  despawnLeftTimerX: -20
-  despawnRightTimerX: 20
-  despawnRightAbsX: 30
-  despawnZBand: 2
-  despawnTimer: 10000
 --- !u!4 &1064781978
 Transform:
   m_ObjectHideFlags: 0
@@ -4012,7 +2969,6 @@ MonoBehaviour:
   fogTilemap: {fileID: 1110901132}
   fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   mainCamera: {fileID: 519420031}
-  caveUtility: {fileID: 127414193}
   caveSurfaceY: 0
   fogColor: {r: 0.08627451, g: 0.3529412, b: 0, a: 1}
   enableHideLogic: 1
@@ -4905,15 +3861,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b27dbdf06a2e1a542a9f260d0b947ec8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  groundTilemap: {fileID: 1367466478}
-  frontTilemap: {fileID: 2050080548}
-  middleFrontTilemap: {fileID: 1899764065}
-  middleBackTilemap: {fileID: 854121014}
-  backTilemap: {fileID: 840299867}
-  powerUpPrefab: {fileID: 3560360957326050748, guid: 5110d5b64222a014c8ff0bb94595fb86, type: 3}
-  cam: {fileID: 519420031}
-  spawner: {fileID: 127414192}
-  spawnChancePerEdge: 0.116
 --- !u!4 &1980366263
 Transform:
   m_ObjectHideFlags: 0
@@ -5069,7 +4016,6 @@ MonoBehaviour:
   fogTilemap: {fileID: 2016733401}
   fogTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   mainCamera: {fileID: 519420031}
-  caveUtility: {fileID: 0}
   caveSurfaceY: 0
   fogColor: {r: 0, g: 0.031144619, b: 1, a: 1}
   enableHideLogic: 0

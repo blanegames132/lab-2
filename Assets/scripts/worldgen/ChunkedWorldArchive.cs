@@ -1,7 +1,128 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using UnityEngine;
+
+[Serializable]
+public class TileData
+{
+    public string blockTagOrName;
+    public bool discovered = false;
+
+    public TileData() { }
+    public TileData(string tag, bool discovered = false)
+    {
+        this.blockTagOrName = tag;
+        this.discovered = discovered;
+    }
+}
+
+public enum TileType
+{
+    Air = 0,
+    Cave = 1,
+    // Add more types as needed
+}
+
+public static class TileTypeExtensions
+{
+    public static string ToTag(this TileType type)
+    {
+        return type.ToString().ToLower();
+    }
+}
+
+[Serializable]
+public class Chunk : ISerializationCallbackReceiver
+{
+    public int chunkX, chunkZ;
+
+    [NonSerialized] public Dictionary<string, TileData> tiles = new();
+    public List<string> keys = new();
+    public List<TileData> values = new();
+
+    public bool IsEmpty => tiles == null || tiles.Count == 0;
+
+    public Chunk(int x, int z) { chunkX = x; chunkZ = z; }
+
+    public bool HasTile(Vector3Int pos)
+    {
+        if (tiles == null) return false;
+        return tiles.ContainsKey(GetKey(pos));
+    }
+
+    public void SetTile(Vector3Int pos, TileData data)
+    {
+        if (tiles == null) tiles = new Dictionary<string, TileData>();
+        string key = GetKey(pos);
+        tiles[key] = data;
+    }
+
+    public TileData TryGetTile(Vector3Int pos)
+    {
+        if (tiles == null) tiles = new Dictionary<string, TileData>();
+        tiles.TryGetValue(GetKey(pos), out var data);
+        return data;
+    }
+
+    public bool RemoveTile(Vector3Int pos)
+    {
+        if (tiles == null || tiles.Count == 0) return false;
+        return tiles.Remove(GetKey(pos));
+    }
+
+    public Dictionary<Vector3Int, TileData> GetAllTiles()
+    {
+        var dict = new Dictionary<Vector3Int, TileData>();
+        if (tiles == null) return dict;
+        foreach (var kv in tiles)
+        {
+            if (TryParseKey(kv.Key, out var pos))
+                dict[pos] = kv.Value;
+        }
+        return dict;
+    }
+
+    private static string GetKey(Vector3Int pos) => $"{pos.x},{pos.y},{pos.z}";
+
+    private static bool TryParseKey(string key, out Vector3Int pos)
+    {
+        var parts = key.Split(',');
+        if (parts.Length == 3 &&
+            int.TryParse(parts[0], out int x) &&
+            int.TryParse(parts[1], out int y) &&
+            int.TryParse(parts[2], out int z))
+        {
+            pos = new Vector3Int(x, y, z);
+            return true;
+        }
+        pos = default;
+        return false;
+    }
+
+    public void OnBeforeSerialize()
+    {
+        keys.Clear();
+        values.Clear();
+        if (tiles == null) return;
+        foreach (var kv in tiles)
+        {
+            keys.Add(kv.Key);
+            values.Add(kv.Value);
+        }
+    }
+
+    public void OnAfterDeserialize()
+    {
+        tiles = new Dictionary<string, TileData>(keys.Count);
+        for (int i = 0; i < keys.Count; i++)
+        {
+            if (!tiles.ContainsKey(keys[i]) && values[i] != null)
+                tiles.Add(keys[i], values[i]);
+        }
+    }
+}
 
 public class ChunkedWorldArchive
 {
@@ -21,23 +142,10 @@ public class ChunkedWorldArchive
     private static readonly object FileIoLock = new object();
     private Dictionary<Vector2Int, int> chunkBiomes = new();
 
-    // --- NEW: Track new tiles since last archive ---
     private int tilesSpawnedSinceLastArchive = 0;
 
-    /// <summary>
-    /// Default parameterless constructor for easy instancing. 
-    /// Uses "defaultSeed" and chunkSize 16.
-    /// </summary>
     public ChunkedWorldArchive() : this("defaultSeed", 16) { }
-
-    /// <summary>
-    /// Allow usage with only a seed string, chunkSize defaults to 16.
-    /// </summary>
     public ChunkedWorldArchive(string seed) : this(seed, 16) { }
-
-    /// <summary>
-    /// Main constructor. You MUST provide both seed and chunkSize.
-    /// </summary>
     public ChunkedWorldArchive(string seed, int chunkSize)
     {
         ChunkSize = chunkSize;
@@ -56,14 +164,11 @@ public class ChunkedWorldArchive
         var chunkCoords = WorldToChunk(pos);
         var chunk = LoadOrCreateChunk(chunkCoords.x, chunkCoords.z);
 
-        // --- NEW: Count new tiles only if adding a tile where one did not exist ---
         bool isNewTile = !chunk.HasTile(pos);
         chunk.SetTile(pos, data);
 
         if (isNewTile)
-        {
             tilesSpawnedSinceLastArchive++;
-        }
 
         TouchChunk(chunkCoords);
         modifiedChunks.Add(chunkCoords);
@@ -72,17 +177,8 @@ public class ChunkedWorldArchive
         MaybeAutoSave();
     }
 
-    // --- NEW: Method to get count of new tiles since last archive ---
-    public int GetTilesSpawnedSinceLastArchive()
-    {
-        return tilesSpawnedSinceLastArchive;
-    }
-
-    // --- NEW: Reset count (called from SaveAll, after archiving) ---
-    private void ResetTilesSpawnedSinceLastArchive()
-    {
-        tilesSpawnedSinceLastArchive = 0;
-    }
+    public int GetTilesSpawnedSinceLastArchive() => tilesSpawnedSinceLastArchive;
+    private void ResetTilesSpawnedSinceLastArchive() => tilesSpawnedSinceLastArchive = 0;
 
     public TileData TryGetTile(Vector3Int pos)
     {
@@ -92,7 +188,6 @@ public class ChunkedWorldArchive
             TouchChunk(chunkCoords);
             return chunk.TryGetTile(pos);
         }
-
         if (File.Exists(ChunkPath(chunkCoords.x, chunkCoords.z)))
         {
             var loaded = LoadChunkFromDisk(chunkCoords.x, chunkCoords.z);
@@ -117,28 +212,17 @@ public class ChunkedWorldArchive
         return allTiles;
     }
 
-    public Dictionary<Vector3Int, TileData> AllTiles()
-    {
-        return GetAllTiles();
-    }
-
     public Dictionary<Vector3Int, TileData> GetChunkTiles(int x, int z)
     {
         if (loadedChunks.TryGetValue((x, z), out var chunk))
-        {
             return chunk.GetAllTiles();
-        }
-        else if (File.Exists(ChunkPath(x, z)))
+
+        if (File.Exists(ChunkPath(x, z)))
         {
             var loaded = LoadChunkFromDisk(x, z);
             return loaded.GetAllTiles();
         }
         return new Dictionary<Vector3Int, TileData>();
-    }
-
-    public bool HasChunk(Vector2Int key)
-    {
-        return chunkBiomes.ContainsKey(key);
     }
 
     public void RemoveTile(Vector3Int pos)
@@ -178,8 +262,6 @@ public class ChunkedWorldArchive
         hasManualSave = true;
         modifiedChunks.Clear();
         modificationCounter = 0;
-
-        // --- NEW: Reset new tiles count after archiving ---
         ResetTilesSpawnedSinceLastArchive();
     }
 
@@ -275,11 +357,11 @@ public class ChunkedWorldArchive
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
 
-            string json = JsonUtility.ToJson(chunk);
+            string json = JsonUtility.ToJson(chunk, true); // pretty print
             string tmpPath = path + ".tmp";
 
             using (var fs = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
-            using (var sw = new StreamWriter(fs))
+            using (var sw = new StreamWriter(fs, Encoding.UTF8))
             {
                 sw.Write(json);
                 sw.Flush();
@@ -290,12 +372,8 @@ public class ChunkedWorldArchive
             {
                 if (File.Exists(path))
                 {
-#if NETSTANDARD || NET_4_6 || NET_4_6_1 || NET_4_7 || NET_4_7_1
-                    File.Replace(tmpPath, path, null);
-#else
                     File.Delete(path);
                     File.Move(tmpPath, path);
-#endif
                 }
                 else
                 {
@@ -319,6 +397,8 @@ public class ChunkedWorldArchive
                 throw;
             }
         }
+
+        Debug.Log($"ChunkedWorldArchive: Saved {chunk.tiles?.Count ?? 0} tiles to {path}");
     }
 
     private Chunk LoadChunkFromDisk(int x, int z)
@@ -336,103 +416,21 @@ public class ChunkedWorldArchive
             }
         }
     }
+    public Dictionary<Vector3Int, TileData> AllTiles()
+    {
+        var allTiles = new Dictionary<Vector3Int, TileData>();
+        foreach (var chunkPair in loadedChunks)
+        {
+            foreach (var tilePair in chunkPair.Value.GetAllTiles())
+            {
+                allTiles[tilePair.Key] = tilePair.Value;
+            }
+        }
+        return allTiles;
+    }
 
     private void OnAppQuit()
     {
         SaveAll();
-    }
-}
-
-[Serializable]
-public class Chunk : ISerializationCallbackReceiver
-{
-    public int chunkX, chunkZ;
-
-    [NonSerialized] private Dictionary<string, TileData> tiles = new();
-    public List<string> keys = new();
-    public List<TileData> values = new();
-
-    public bool IsEmpty => tiles == null || tiles.Count == 0;
-
-    public Chunk(int x, int z) { chunkX = x; chunkZ = z; }
-
-    /// <summary>
-    /// Returns true if there is a tile at the given position, false otherwise.
-    /// </summary>
-    public bool HasTile(Vector3Int pos)
-    {
-        if (tiles == null) return false;
-        return tiles.ContainsKey(GetKey(pos));
-    }
-
-    public void SetTile(Vector3Int pos, TileData data)
-    {
-        if (tiles == null) tiles = new Dictionary<string, TileData>();
-        string key = GetKey(pos);
-        tiles[key] = data;
-    }
-
-    public TileData TryGetTile(Vector3Int pos)
-    {
-        if (tiles == null) tiles = new Dictionary<string, TileData>();
-        tiles.TryGetValue(GetKey(pos), out var data);
-        return data;
-    }
-
-    public bool RemoveTile(Vector3Int pos)
-    {
-        if (tiles == null || tiles.Count == 0) return false;
-        return tiles.Remove(GetKey(pos));
-    }
-
-    public Dictionary<Vector3Int, TileData> GetAllTiles()
-    {
-        var dict = new Dictionary<Vector3Int, TileData>();
-        if (tiles == null) return dict;
-        foreach (var kv in tiles)
-        {
-            if (TryParseKey(kv.Key, out var pos))
-                dict[pos] = kv.Value;
-        }
-        return dict;
-    }
-
-    private static string GetKey(Vector3Int pos) => $"{pos.x},{pos.y},{pos.z}";
-
-    private static bool TryParseKey(string key, out Vector3Int pos)
-    {
-        var parts = key.Split(',');
-        if (parts.Length == 3 &&
-            int.TryParse(parts[0], out int x) &&
-            int.TryParse(parts[1], out int y) &&
-            int.TryParse(parts[2], out int z))
-        {
-            pos = new Vector3Int(x, y, z);
-            return true;
-        }
-        pos = default;
-        return false;
-    }
-
-    public void OnBeforeSerialize()
-    {
-        keys.Clear();
-        values.Clear();
-        if (tiles == null) return;
-        foreach (var kv in tiles)
-        {
-            keys.Add(kv.Key);
-            values.Add(kv.Value);
-        }
-    }
-
-    public void OnAfterDeserialize()
-    {
-        tiles = new Dictionary<string, TileData>(keys.Count);
-        for (int i = 0; i < keys.Count; i++)
-        {
-            if (!tiles.ContainsKey(keys[i]) && values[i] != null)
-                tiles.Add(keys[i], values[i]);
-        }
     }
 }
