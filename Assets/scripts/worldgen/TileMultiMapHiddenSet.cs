@@ -35,6 +35,53 @@ public class TileMultiMapHiddenSet : MonoBehaviour
     public bool setHideTilesRuntime = true;
 
     /// <summary>
+    /// Dynamically sets bubbleHideRadius for configs based on active tilemap index.
+    /// E.g. if activeIndex==2, sets configs[2]=2, configs[3]=4, configs[4]=6, etc.
+    /// </summary>
+    public void SetBubbleHideRadiusByActive(int activeIndex)
+    {
+        if (configs == null) return;
+        int radius = 2;
+        for (int i = activeIndex; i < configs.Count; i++, radius += 2)
+        {
+            configs[i].bubbleHideRadius = radius;
+        }
+    }
+
+    /// <summary>
+    /// Hide a single tile if it falls within the bubble radius for any configured tilemap.
+    /// Call this from your spawner after setting a tile.
+    /// </summary>
+    public void HideTileIfShould(Tilemap tilemap, Vector3Int cell)
+    {
+        foreach (var config in configs)
+        {
+            if (config == null || config.tilemap != tilemap || triggerTransform == null) continue;
+
+            Vector3Int centerCell = config.tilemap.WorldToCell(triggerTransform.position);
+            int dx = cell.x - centerCell.x;
+            int dy = cell.y - centerCell.y;
+
+            // Only hide if within bubble radius
+            if (dx * dx + dy * dy <= config.bubbleHideRadius * config.bubbleHideRadius)
+            {
+                if (config.hideTileAsset != null)
+                {
+                    if (config.tilemap.GetTile(cell) != config.hideTileAsset)
+                        config.tilemap.SetTile(cell, config.hideTileAsset);
+                }
+                else
+                {
+                    if (config.tilemap.GetTile(cell) != null)
+                        config.tilemap.SetTile(cell, null);
+                }
+                // Archive/cave support
+                TileEventBus.BroadcastTileSet(config.tilemap, cell, null);
+            }
+        }
+    }
+
+    /// <summary>
     /// Returns the set of hidden tile positions for a given tilemap, at *all* z's, within the bubble radius from trigger.
     /// </summary>
     public HashSet<Vector3Int> GetTilesToHide(TilemapHideConfig config, Vector3 triggerWorldPos)
@@ -77,7 +124,6 @@ public class TileMultiMapHiddenSet : MonoBehaviour
             HashSet<Vector3Int> hidden = GetTilesToHide(config, triggerTransform.position);
             foreach (var cell in hidden)
             {
-                // Defensive: If hideTileAsset is set, use it; if not, REMOVE the tile instead (delete/clear).
                 if (config.hideTileAsset != null)
                 {
                     if (config.tilemap.GetTile(cell) != config.hideTileAsset)
@@ -88,19 +134,13 @@ public class TileMultiMapHiddenSet : MonoBehaviour
                     if (config.tilemap.GetTile(cell) != null)
                         config.tilemap.SetTile(cell, null);
                 }
-
-                // --- ARCHIVE SUPPORT VIA EVENT BUS ---
-                // If this was a cave, set to air and permanently block cave respawn.
                 if (TileEventBus.QueryShouldBlockTile(cell)) continue; // Already blocked
-
-                // (If you want to permanently block cave respawn, broadcast a tile set of "air" here)
                 TileEventBus.BroadcastTileSet(config.tilemap, cell, null); // null means "air" for archiving
             }
         }
     }
 
 #if UNITY_EDITOR
-    // Always active—never toggled or gated by selection
     void OnDrawGizmos()
     {
         DrawHiddenTilesGizmos();

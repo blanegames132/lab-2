@@ -136,12 +136,12 @@ GameObject:
   - component: {fileID: 127414205}
   - component: {fileID: 127414206}
   - component: {fileID: 127414207}
-  - component: {fileID: 127414208}
   - component: {fileID: 127414210}
   - component: {fileID: 127414209}
   - component: {fileID: 127414211}
   - component: {fileID: 127414213}
   - component: {fileID: 127414212}
+  - component: {fileID: 127414214}
   m_Layer: 0
   m_Name: tilemanager
   m_TagString: Untagged
@@ -177,15 +177,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   configs:
-  - tilemap: {fileID: 1899764065}
+  - tilemap: {fileID: 854121014}
     bubbleHideRadius: 2
+    hideTileAsset: {fileID: 0}
+  - tilemap: {fileID: 1367466478}
+    bubbleHideRadius: 5
+    hideTileAsset: {fileID: 0}
+  - tilemap: {fileID: 1899764065}
+    bubbleHideRadius: 5
     hideTileAsset: {fileID: 0}
   - tilemap: {fileID: 2050080548}
     bubbleHideRadius: 5
     hideTileAsset: {fileID: 0}
   triggerTransform: {fileID: 892277581}
   spawner: {fileID: 127414209}
-  determinantRadius: 0
+  determinantRadius: 3
   gizmoVerticalOffset: 0.25
   setHideTilesRuntime: 1
 --- !u!114 &127414192
@@ -294,15 +300,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d19ddab50163b7f48afca300bfdc92d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawner: {fileID: 127414209}
-  maxChunksPerFrame: 5
-  maxBufferChunksPerFrame: 1
-  updateDistance: 100
-  bufferDistance: 110
-  tilemapActiveRange: 160
-  chunkDeleteDistance: 192
-  bufferProcessFrameSkip: 500
-  deleteProcessFrameSkip: 50
 --- !u!114 &127414205
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -361,18 +358,6 @@ MonoBehaviour:
   - {fileID: 2050080548}
   maxArchiveActionsPerFrame: 20
   maxArchiveQueueSize: 100
---- !u!114 &127414208
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127414184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 38f064c71103bca4fa832000a1e908ec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &127414209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -398,16 +383,13 @@ MonoBehaviour:
   perlinBase: 0
   hillVerticalShift: -5
   cliffSharpness: 2
-  canyonThreshold: 0.92
+  canyonThreshold: 0.9
   randomHillCurve:
     serializedVersion: 2
     m_Curve: []
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  tilemapZSpacings:
-  - tilemap: {fileID: 1367466478}
-    zSpacing: 0
   groundTilemap: {fileID: 1367466478}
   frontTilemap: {fileID: 2050080548}
   middleFrontTilemap: {fileID: 1899764065}
@@ -419,15 +401,16 @@ MonoBehaviour:
   defaultBedrockTile: {fileID: 11400000, guid: b71acc1c4e96baf429513f39e9a84ee6, type: 2}
   defaultAirTile: {fileID: 0}
   playerTransform: {fileID: 892277581}
+  chunkSize: 16
+  enableChunkManager: 0
+  chunkManager: {fileID: 0}
+  hiddenSetScript: {fileID: 127414189}
   biomeManagerFallback: {fileID: 127414210}
   selectedBiomeName: 
   selectedBiomeIndex: 0
   visualAreaSize: 30
   tilesBelow: 50
   worldBottomY: -100
-  chunkSize: 16
-  chunksSpawnDistance: 10
-  chunkManager: {fileID: 0}
   groundCaveUtility: {fileID: 127414193}
   frontCaveUtility: {fileID: 127414193}
   middleFrontCaveUtility: {fileID: 127414193}
@@ -438,11 +421,6 @@ MonoBehaviour:
   middleFrontSeed: 303
   middleBackSeed: 404
   backSeed: 505
-  groundZOffset: 0
-  frontZOffset: 1
-  middleFrontZOffset: 2
-  middleBackZOffset: -1
-  backZOffset: -2
 --- !u!114 &127414210
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -488,12 +466,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a5c3f068e6834548ad969c908edfb15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawner: {fileID: 127414209}
   chunkSize: 16
   chunkRadius: 3
+  bufferRadius: 6
+  despawnRadius: 9
   drawGizmos: 1
+  playerTransform: {fileID: 892277581}
   loadedColor: {r: 0, g: 1, b: 0, a: 1}
-  neededColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  bufferColor: {r: 0, g: 1, b: 1, a: 1}
+  despawnColor: {r: 1, g: 0, b: 0, a: 1}
+  edgeGizmoColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  zOffsets: 000000000100000002000000fffffffffeffffff
 --- !u!114 &127414213
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -516,6 +499,18 @@ MonoBehaviour:
   groundSeed: 101
   groundZOffset: 0
   defaultAirTile: {fileID: 0}
+--- !u!114 &127414214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 127414184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50ffc1b0bb7d9094797008f816567aaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &139177888
 GameObject:
   m_ObjectHideFlags: 0
@@ -2424,13 +2419,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   zMoveAmount: 0.2
   zMoveMode: 0
+  groundTilemap: {fileID: 1367466478}
   middleBackTilemap: {fileID: 854121014}
   middlefrontTilemap: {fileID: 1899764065}
+  backTilemap: {fileID: 840299867}
+  frontTilemap: {fileID: 2050080548}
   zCheckDistance: 1
-  spawner: {fileID: 0}
+  spawner: {fileID: 127414209}
   debugLogging: 1
-  showZBlockStateRepeatedly: 0
-  statusLogInterval: 1
 --- !u!114 &892277600
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2444,11 +2440,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tilemapsToIgnore:
-  - {fileID: 2050080548}
+  - {fileID: 840299867}
   - {fileID: 854121014}
   - {fileID: 1899764065}
-  - {fileID: 840299867}
-  ignoreOnStart: 1
+  - {fileID: 2050080548}
+  minZ: -2
+  maxZ: 2
+  closestTileZThreshold: 0.5
+  tileMultiMapHiddenSet: {fileID: 127414189}
 --- !u!114 &892277601
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2461,7 +2460,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37cd5881fbfc48d46bd93139db4d904e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animController: {fileID: 0}
+  animController: {fileID: 892277589}
 --- !u!70 &892277602
 CapsuleCollider2D:
   m_ObjectHideFlags: 0

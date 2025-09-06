@@ -1,16 +1,15 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using System.Collections.Generic;
 
-/// <summary>
-/// Handles clicking on tilemap blocks and removing the single clicked tile (except bedrock)
-/// from the ground tilemap and persistent archive (via event bus).
-/// Spawner logic ensures all blocks can be deleted via the event bus.
-/// </summary>
 public class TileBlockClickHandler : MonoBehaviour
 {
     public Tilemap groundTilemap;
     public Transform playerTransform;
-    public float radius = 3f; // Radius around player in which blocks can be clicked/removed
+    public float radius = 3f;
+
+    // Static: persists across scenes; you can move to a manager if you wish
+    public static HashSet<Vector3Int> permanentlyDeletedCells = new HashSet<Vector3Int>();
 
     void Update()
     {
@@ -29,7 +28,6 @@ public class TileBlockClickHandler : MonoBehaviour
             Vector3 clickCellPos = new Vector3(mouseWorldPos.x, mouseWorldPos.y, playerTransform.position.z);
             Vector3Int clickedCell = groundTilemap.WorldToCell(clickCellPos);
 
-            // Distance check
             Vector3 playerCellCenter = groundTilemap.CellToWorld(groundTilemap.WorldToCell(playerTransform.position));
             playerCellCenter.z = playerTransform.position.z;
             Vector3 clickedCellCenter = groundTilemap.CellToWorld(clickedCell);
@@ -43,7 +41,6 @@ public class TileBlockClickHandler : MonoBehaviour
             {
                 if (groundTilemap.HasTile(clickedCell))
                 {
-                    // Bedrock check: Use archive (if present) or asset name
                     string tag = null;
                     TileData tileData = null;
 
@@ -59,8 +56,8 @@ public class TileBlockClickHandler : MonoBehaviour
 
                     if (string.IsNullOrEmpty(tag) || !tag.StartsWith("bedrock", System.StringComparison.OrdinalIgnoreCase))
                     {
-                        // Delete tile via event bus (removes from archive and tilemap)
                         TileEventBus.BroadcastTileDelete(groundTilemap, clickedCell);
+                        permanentlyDeletedCells.Add(clickedCell); // <--- Mark cell as permanently deleted
                         Debug.Log($"Deleted tile at {clickedCell} (not bedrock)");
                     }
                     else
