@@ -23,7 +23,7 @@ public class TileMultiMapHiddenSet : MonoBehaviour
     public Transform triggerTransform;
 
     [Tooltip("Reference to ChunkedWorldArchive or spawner with archive.")]
-    public TileInfiniteCameraSpawner spawner; // <-- Assign in Inspector or via code
+    public InfiniteCameraSpawnerModular spawner; // <-- Assign in Inspector or via code
 
     [Tooltip("Second visual radius for determinant/hide area (in tiles, XY). Set to 0 to disable.")]
     public int determinantRadius = 0;

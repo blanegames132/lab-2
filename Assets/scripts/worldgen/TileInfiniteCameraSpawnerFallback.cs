@@ -25,7 +25,7 @@ public class InfiniteCameraSpawnerModular : MonoBehaviour
     public float perlinBase = 0f;
     public float hillVerticalShift = 0f;
     public float cliffSharpness = 2.0f;
-    public float canyonThreshold = 0.9f; // <-- Added missing field!
+    public float canyonThreshold = 0.9f;
     public AnimationCurve randomHillCurve;
 
     // --- Tilemap Z Spacing (for multi-layer worlds) ---
@@ -340,7 +340,35 @@ public class InfiniteCameraSpawnerModular : MonoBehaviour
             }
         }
     }
-
+    public TileBase GetActualTileAssetAtCell(Vector3Int cell)
+    {
+        if (groundTilemap != null)
+        {
+            TileBase t = groundTilemap.GetTile(cell);
+            if (t != null) return t;
+        }
+        if (frontTilemap != null)
+        {
+            TileBase t = frontTilemap.GetTile(cell);
+            if (t != null) return t;
+        }
+        if (middleFrontTilemap != null)
+        {
+            TileBase t = middleFrontTilemap.GetTile(cell);
+            if (t != null) return t;
+        }
+        if (middleBackTilemap != null)
+        {
+            TileBase t = middleBackTilemap.GetTile(cell);
+            if (t != null) return t;
+        }
+        if (backTilemap != null)
+        {
+            TileBase t = backTilemap.GetTile(cell);
+            if (t != null) return t;
+        }
+        return null;
+    }
     public void DeleteTile(Vector3Int pos)
     {
         if (groundTilemap != null)

@@ -19,7 +19,7 @@ public class PlayerZMovementFlexible : MonoBehaviour
     [SerializeField] private int zCheckDistance = 1;
 
     [Header("Spawner Reference")]
-    [SerializeField] private TileInfiniteCameraSpawner spawner;
+    [SerializeField] private InfiniteCameraSpawnerModular spawner;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogging = true;
